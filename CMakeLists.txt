@@ -1,9 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(hello VERSION 1.0)
+project(VulkanRenderer VERSION 1.0)
+
+
+find_package(Vulkan REQUIRED)
 
 file(GLOB SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
-add_executable(hello ${SRC_FILES})
-target_include_directories(hello PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+file(GLOB HEADER_FILES CONFIGURE_DEPENDS "include/*.h")
+add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES})
+
+target_include_directories(VulkanRenderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+
+add_subdirectory(third-party)
+target_link_libraries(VulkanRenderer vk-bootstrap)
