@@ -1,34 +1,18 @@
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
 
-#include "Renderer.h"
-#include <SDL.h>
+#include "Engine.h"
+
 
 int main(int argc, char* argv[])
 {
-	ZoneScopedN("Main Function");
+	ZoneScoped;
 	tracy::SetThreadName("MainThread");
 
-	Renderer rend;
-
-	rend.init();
-	bool bQuit = { false };
-	SDL_Event e;
-
-	while (!bQuit)
-	{
-		ZoneScopedN("Draw Loop")
-			while (SDL_PollEvent(&e) != 0)
-			{
-				if (e.type == SDL_QUIT)
-				{
-					bQuit = true;
-				}
-				rend.draw();
-			}
-		FrameMark;
-	}
-	rend.deinit();
+	Engine game;
+	game.init();
+	game.run();
+	game.deinit();
 
 	return 0;
 }

@@ -16,7 +16,7 @@
 
 void Renderer::init()
 {
-	ZoneScopedN("Renderer init");
+	ZoneScoped;
 
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -41,6 +41,7 @@ void Renderer::init()
 
 void Renderer::draw() 
 {
+	ZoneScoped;
 	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
 	vkResetFences(device, 1, &renderFen);
 
@@ -183,12 +184,12 @@ void Renderer::draw()
 	};
 
 	vkQueuePresentKHR(graphics.queue, &presentInfo);
-
+	FrameMark;
 	frameNumber++;
 }
 
 void Renderer::initVulkan() {
-	ZoneScopedN("Vulkan init");
+	ZoneScoped;
 	vkb::InstanceBuilder builder;
 
 	const auto inst_ret = builder.set_app_name("Vulkan Renderer")
@@ -243,7 +244,7 @@ void Renderer::initVulkan() {
 
 void Renderer::createSwapchain()
 {
-	ZoneScopedN("Swapchain Creation");
+	ZoneScoped;
 	vkb::SwapchainBuilder swapchainBuilder{ chosenGPU,device,surface };
 
 	vkb::Swapchain vkbSwapchain = swapchainBuilder
@@ -261,6 +262,7 @@ void Renderer::createSwapchain()
 
 void Renderer::initGraphicsCommands()
 {
+	ZoneScoped;
 	const VkCommandPoolCreateInfo graphicsCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
@@ -287,6 +289,7 @@ void Renderer::initGraphicsCommands()
 }
 
 void Renderer::initComputeCommands(){
+	ZoneScoped;
 	const VkCommandPoolCreateInfo computeCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
@@ -312,8 +315,7 @@ void Renderer::initComputeCommands(){
 
 void Renderer::initSyncStructures()
 {
-	//create synchronization structures
-
+	ZoneScoped;
 	const VkFenceCreateInfo fenceCreateInfo = {
 		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 		.pNext = nullptr,
@@ -334,7 +336,7 @@ void Renderer::initSyncStructures()
 
 void Renderer::deinit() 
 {
-	ZoneScopedN("Vulkan deinit");
+	ZoneScoped;
 
 	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
 
