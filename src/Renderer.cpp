@@ -8,11 +8,13 @@
 
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
+#include <Tracy.hpp>
 
-#include <glm.hpp>
 
-void Renderer::init() 
+void Renderer::init()
 {
+	ZoneScopedN("Vulkan init");
+
 	SDL_Init(SDL_INIT_VIDEO);
 
 	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
@@ -51,14 +53,7 @@ void Renderer::init()
 
 	vkb::DeviceBuilder deviceBuilder{ physicalDevice };
 
-	const VkPhysicalDeviceHostQueryResetFeatures resetFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES,
-		.pNext = nullptr,
-		.hostQueryReset = VK_TRUE,
-	};
-
 	const vkb::Device vkbDevice = deviceBuilder
-		.add_pNext(&resetFeatures)
 		.build()
 		.value();
 
@@ -81,6 +76,7 @@ void Renderer::init()
 
 void Renderer::run() 
 {
+	ZoneScopedN("Run Loop")
 	bool bQuit = { false };
 	SDL_Event e;
 
@@ -92,12 +88,15 @@ void Renderer::run()
 			{
 				bQuit = true;
 			}
+			
 		}
+		FrameMark;
 	}
 }
 
 void Renderer::deinit() 
 {
+	ZoneScopedN("Vulkan deinit");
 	vmaDestroyAllocator(allocator);
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkb::destroy_debug_utils_messenger(instance, debugMessenger);

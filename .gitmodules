@@ -1,3 +1,6 @@
 [submodule "third-party/vk-bootstrap"]
 	path = third-party/vk-bootstrap
 	url = https://github.com/charles-lunarg/vk-bootstrap
+[submodule "third-party/--force"]
+	path = third-party/--force
+	url = https://github.com/wolfpld/tracy
