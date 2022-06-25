@@ -33,6 +33,8 @@ void Renderer::init()
 
 	initVulkan();
 	createSwapchain();
+	initGraphicsCommands();
+	initComputeCommands();
 
 }
 
@@ -107,7 +109,8 @@ void Renderer::createSwapchain()
 	swapchain.imageFormat = vkbSwapchain.image_format;
 }
 
-void Renderer::initCommands() {
+void Renderer::initGraphicsCommands()
+{
 	const VkCommandPoolCreateInfo graphicsCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
@@ -128,12 +131,44 @@ void Renderer::initCommands() {
 			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			.commandBufferCount = 1
 		};
+
+		vkAllocateCommandBuffers(device, &bufferAllocInfo, &graphics.commands[i].buffer);
 	}
+}
+
+void Renderer::initComputeCommands(){
+	const VkCommandPoolCreateInfo computeCommandPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = compute.queueFamily
+	};
+
+	VkCommandPool* commandPool = &compute.commands[0].pool;
+
+	vkCreateCommandPool(device, &computeCommandPoolCreateInfo, nullptr, commandPool);
+
+	const VkCommandBufferAllocateInfo bufferAllocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.commandPool = *commandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1
+	};
+
+	vkAllocateCommandBuffers(device, &bufferAllocInfo, &compute.commands[0].buffer);
+
 }
 
 void Renderer::deinit() 
 {
 	ZoneScopedN("Vulkan deinit");
+
+	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
+	for (int i = 0; i < swapchain.imageViews.size(); i++)
+	{
+		vkDestroyImageView(device, swapchain.imageViews[i], nullptr);
+	}
 
 	vkDestroyCommandPool(device, graphics.commands[0].pool, nullptr);
 	vkDestroyCommandPool(device, graphics.commands[1].pool, nullptr);

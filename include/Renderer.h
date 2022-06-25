@@ -16,7 +16,8 @@ public:
 private:
 	void initVulkan();
 	void createSwapchain();
-	void initCommands();
+	void initGraphicsCommands();
+	void initComputeCommands();
 
 	VkInstance instance;
 	VkPhysicalDevice chosenGPU;
