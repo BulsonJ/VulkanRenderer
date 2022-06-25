@@ -8,12 +8,15 @@
 
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
-#include <Tracy.hpp>
 
+#include <Tracy.hpp>
+#include <common/TracySystem.hpp>
+
+#include <iostream>
 
 void Renderer::init()
 {
-	ZoneScopedN("Vulkan init");
+	ZoneScopedN("Renderer init");
 
 	SDL_Init(SDL_INIT_VIDEO);
 
@@ -28,6 +31,18 @@ void Renderer::init()
 		window_flags
 	);
 
+	initVulkan();
+	createSwapchain();
+
+}
+
+void Renderer::draw() 
+{
+	
+}
+
+void Renderer::initVulkan() {
+	ZoneScopedN("Vulkan init");
 	vkb::InstanceBuilder builder;
 
 	const auto inst_ret = builder.set_app_name("Vulkan Renderer")
@@ -74,29 +89,56 @@ void Renderer::init()
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
 
-void Renderer::run() 
+void Renderer::createSwapchain()
 {
-	ZoneScopedN("Run Loop")
-	bool bQuit = { false };
-	SDL_Event e;
+	ZoneScopedN("Swapchain Creation");
+	vkb::SwapchainBuilder swapchainBuilder{ chosenGPU,device,surface };
 
-	while (!bQuit) 
+	vkb::Swapchain vkbSwapchain = swapchainBuilder
+		.use_default_format_selection()
+		.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+		.set_desired_extent(window.extent.width, window.extent.height)
+		.build()
+		.value();
+
+	swapchain.swapchain = vkbSwapchain.swapchain;
+	swapchain.images = vkbSwapchain.get_images().value();
+	swapchain.imageViews = vkbSwapchain.get_image_views().value();
+	swapchain.imageFormat = vkbSwapchain.image_format;
+}
+
+void Renderer::initCommands() {
+	const VkCommandPoolCreateInfo graphicsCommandPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = graphics.queueFamily
+	};
+
+	for (int i = 0; i < 2; ++i)
 	{
-		while (SDL_PollEvent(&e) != 0)
-		{
-			if (e.type == SDL_QUIT)
-			{
-				bQuit = true;
-			}
-			
-		}
-		FrameMark;
+		VkCommandPool* commandPool = &graphics.commands[i].pool;
+
+		vkCreateCommandPool(device, &graphicsCommandPoolCreateInfo, nullptr, commandPool);
+
+		const VkCommandBufferAllocateInfo bufferAllocInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.commandPool = *commandPool,
+			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = 1
+		};
 	}
 }
 
 void Renderer::deinit() 
 {
 	ZoneScopedN("Vulkan deinit");
+
+	vkDestroyCommandPool(device, graphics.commands[0].pool, nullptr);
+	vkDestroyCommandPool(device, graphics.commands[1].pool, nullptr);
+	vkDestroyCommandPool(device, compute.commands[0].pool, nullptr);
+
 	vmaDestroyAllocator(allocator);
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkb::destroy_debug_utils_messenger(instance, debugMessenger);

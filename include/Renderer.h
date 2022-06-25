@@ -9,9 +9,15 @@ class Renderer
 public:
 	void init();
 	void deinit();
-	void run();
+	void draw();
+
+	RenderTypes::WindowContext window;
 
 private:
+	void initVulkan();
+	void createSwapchain();
+	void initCommands();
+
 	VkInstance instance;
 	VkPhysicalDevice chosenGPU;
 	VkPhysicalDeviceProperties gpuProperties;
@@ -20,9 +26,11 @@ private:
 	VkSurfaceKHR surface;
 	VmaAllocator allocator;
 	VkDebugUtilsMessengerEXT debugMessenger;
-	RenderTypes::WindowContext window;
 
-	RenderTypes::QueueContext graphics;
-	RenderTypes::QueueContext compute;
+
+	RenderTypes::QueueContext<2> graphics;
+	RenderTypes::QueueContext<1> compute;
+
+	RenderTypes::Swapchain swapchain;
 
 };

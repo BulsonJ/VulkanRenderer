@@ -22,7 +22,5 @@ add_library(glm INTERFACE)
 target_include_directories(vma INTERFACE vma/include)
 target_include_directories(glm INTERFACE glm/glm)
 
-option(TRACY_ENABLE "" ON)
-option(TRACY_ON_DEMAND "" ON)
 add_subdirectory(tracy) # target: TracyClient or alias Tracy::TracyClient
 

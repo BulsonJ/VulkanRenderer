@@ -1,7 +1,8 @@
 #pragma once
 
-#include <SDL.h>
 #include <vulkan/vulkan.h>
+
+#include <vector>
 
 struct SDL_Window;
 
@@ -12,9 +13,26 @@ namespace RenderTypes {
 		VkExtent2D extent = { 1920 , 1080 };
 	};
 
+	struct CommandContext
+	{
+		VkCommandPool pool;
+		VkCommandBuffer buffer;
+	};
+
+	template<uint32_t FRAMES>
 	struct QueueContext
 	{
 		VkQueue queue;
 		uint32_t queueFamily;
+		CommandContext commands[FRAMES];
+	};
+
+	struct Swapchain
+	{
+		VkSwapchainKHR swapchain;
+		VkFormat imageFormat;
+		std::vector<VkImage> images;
+		std::vector<VkImageView> imageViews;
+		std::vector<VkFramebuffer> framebuffers;
 	};
 }
