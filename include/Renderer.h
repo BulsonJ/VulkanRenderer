@@ -2,17 +2,17 @@
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+#include <RenderTypes.h>
 
 class Renderer 
 {
 public:
 	void init();
 	void deinit();
+	void run();
 
 private:
-	VkExtent2D windowExtent = { 1920 , 1080 };
-
-	struct SDL_Window* window = nullptr;
+	RenderTypes::WindowContext window;
 
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;

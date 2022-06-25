@@ -17,12 +17,12 @@ void Renderer::init()
 
 	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
 
-	window = SDL_CreateWindow(
+	window.window = SDL_CreateWindow(
 		"Vulkan Renderer",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
-		windowExtent.width,
-		windowExtent.height,
+		window.extent.width,
+		window.extent.height,
 		window_flags
 	);
 
@@ -40,7 +40,7 @@ void Renderer::init()
 	instance = vkb_inst.instance;
 	debugMessenger = vkb_inst.debug_messenger;
 
-	SDL_Vulkan_CreateSurface(window, instance, &surface);
+	SDL_Vulkan_CreateSurface(window.window, instance, &surface);
 
 	vkb::PhysicalDeviceSelector selector{ vkb_inst };
 	vkb::PhysicalDevice physicalDevice = selector
@@ -80,6 +80,23 @@ void Renderer::init()
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
 
+void Renderer::run() 
+{
+	bool bQuit = { false };
+	SDL_Event e;
+
+	while (!bQuit) 
+	{
+		while (SDL_PollEvent(&e) != 0)
+		{
+			if (e.type == SDL_QUIT)
+			{
+				bQuit = true;
+			}
+		}
+	}
+}
+
 void Renderer::deinit() 
 {
 	vmaDestroyAllocator(allocator);
@@ -88,5 +105,5 @@ void Renderer::deinit()
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instance, nullptr);
 
-	SDL_DestroyWindow(window);
+	SDL_DestroyWindow(window.window);
 }

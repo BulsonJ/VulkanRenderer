@@ -8,6 +8,8 @@ int main(int argc, char* argv[])
 
 	test.init();
 
+	test.run();
+
 	test.deinit();
 	return 0;
 }
