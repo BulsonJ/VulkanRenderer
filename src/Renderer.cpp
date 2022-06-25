@@ -35,12 +35,156 @@ void Renderer::init()
 	createSwapchain();
 	initGraphicsCommands();
 	initComputeCommands();
+	initSyncStructures();
 
 }
 
 void Renderer::draw() 
 {
-	
+	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
+	vkResetFences(device, 1, &renderFen);
+
+	uint32_t swapchainImageIndex;
+	vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, presentSem, nullptr, &swapchainImageIndex);
+
+	vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0);
+
+	const VkCommandBuffer cmd = graphics.commands[getCurrentFrameNumber()].buffer;
+
+	const VkCommandBufferBeginInfo cmdBeginInfo = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		.pInheritanceInfo = nullptr,
+	};
+
+	vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+	const VkViewport viewport{
+		.x = 0.0f,
+		.y = 0.0f,
+		.width = static_cast<float>(window.extent.width),
+		.height = static_cast<float>(window.extent.height),
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f,
+	};
+
+	const VkRect2D scissor{
+		.offset = {0,0},
+		.extent = window.extent
+	};
+
+	vkCmdSetViewport(cmd, 0, 1, &viewport);
+	vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+	const VkImageMemoryBarrier presentImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.image = swapchain.images[swapchainImageIndex],
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&presentImgMemBarrier
+	);
+
+	const VkRenderingAttachmentInfo colorAttachInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.imageView = swapchain.imageViews[swapchainImageIndex],
+		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.clearValue = { 
+			.color = {0.1f, 0.1f, abs(sin(frameNumber / 120.f)), 1.0f}
+		}
+	};
+
+	const VkRenderingInfo renderInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+		.renderArea = scissor,
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachInfo
+	};
+	vkCmdBeginRendering(cmd, &renderInfo);
+
+	vkCmdEndRendering(cmd);
+
+	const VkImageMemoryBarrier imgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		.image = swapchain.images[swapchainImageIndex],
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&imgMemBarrier
+	);
+
+	vkEndCommandBuffer(cmd);
+
+	VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	const VkSubmitInfo submit = {
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &presentSem,
+		.pWaitDstStageMask = &waitStage,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &cmd,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &renderSem,
+	};
+
+	vkQueueSubmit(graphics.queue, 1, &submit, renderFen);
+
+	const VkPresentInfoKHR presentInfo = {
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.pNext = nullptr,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &renderSem,
+		.swapchainCount = 1,
+		.pSwapchains = &swapchain.swapchain,
+		.pImageIndices = &swapchainImageIndex,
+	};
+
+	vkQueuePresentKHR(graphics.queue, &presentInfo);
+
+	frameNumber++;
 }
 
 void Renderer::initVulkan() {
@@ -49,7 +193,7 @@ void Renderer::initVulkan() {
 
 	const auto inst_ret = builder.set_app_name("Vulkan Renderer")
 		.request_validation_layers(true)
-		.require_api_version(1, 2, 0)
+		.require_api_version(1, 3, 0)
 		.enable_extension("VK_EXT_debug_utils")
 		.use_default_debug_messenger()
 		.build();
@@ -70,7 +214,13 @@ void Renderer::initVulkan() {
 
 	vkb::DeviceBuilder deviceBuilder{ physicalDevice };
 
+	VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeature{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+		.dynamicRendering = VK_TRUE,
+	};
+
 	const vkb::Device vkbDevice = deviceBuilder
+		.add_pNext(&dynamicRenderingFeature)
 		.build()
 		.value();
 
@@ -160,15 +310,43 @@ void Renderer::initComputeCommands(){
 
 }
 
+void Renderer::initSyncStructures()
+{
+	//create synchronization structures
+
+	const VkFenceCreateInfo fenceCreateInfo = {
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT
+	};
+
+	vkCreateFence(device, &fenceCreateInfo, nullptr, &renderFen);
+
+	const VkSemaphoreCreateInfo semaphoreCreateInfo = {
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0
+	};
+
+	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &presentSem);
+	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &renderSem);
+}
+
 void Renderer::deinit() 
 {
 	ZoneScopedN("Vulkan deinit");
 
-	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
+	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
+
+	vkDestroySemaphore(device, presentSem, nullptr);
+	vkDestroySemaphore(device, renderSem, nullptr);
+	vkDestroyFence(device, renderFen, nullptr);
+
 	for (int i = 0; i < swapchain.imageViews.size(); i++)
 	{
 		vkDestroyImageView(device, swapchain.imageViews[i], nullptr);
 	}
+	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
 
 	vkDestroyCommandPool(device, graphics.commands[0].pool, nullptr);
 	vkDestroyCommandPool(device, graphics.commands[1].pool, nullptr);
