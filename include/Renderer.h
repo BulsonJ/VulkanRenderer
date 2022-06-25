@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 class Renderer 
 {
@@ -19,7 +20,9 @@ private:
 	VkPhysicalDeviceProperties gpuProperties;
 	VkDevice device;
 	VkSurfaceKHR surface;
+	VmaAllocator allocator;
 
 	VkQueue graphicsQueue;
 	uint32_t graphicsQueueFamily;
+
 };

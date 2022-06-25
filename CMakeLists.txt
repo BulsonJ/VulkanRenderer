@@ -17,5 +17,5 @@ target_include_directories(VulkanRenderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_subdirectory(third-party)
-target_link_libraries(VulkanRenderer vk-bootstrap)
+target_link_libraries(VulkanRenderer vk-bootstrap vma glm)
 target_link_libraries(VulkanRenderer Vulkan::Vulkan SDL2)

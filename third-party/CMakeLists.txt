@@ -15,3 +15,10 @@ add_library(SDL2 INTERFACE)
 target_include_directories(SDL2 INTERFACE SDL2/include)
 target_link_directories(SDL2 INTERFACE SDL2/lib/x64)
 target_link_libraries(SDL2 INTERFACE SDL2.lib SDL2main.lib)
+
+add_library(vma INTERFACE)
+add_library(glm INTERFACE)
+
+target_include_directories(vma INTERFACE vma/include)
+target_include_directories(glm INTERFACE glm/glm)
+

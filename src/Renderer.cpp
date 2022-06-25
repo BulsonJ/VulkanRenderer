@@ -1,10 +1,15 @@
 #include "Renderer.h"
 
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
+
+#include <glm.hpp>
 
 void Renderer::init() 
 {
@@ -67,16 +72,17 @@ void Renderer::init()
 	//compute.queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
 	//compute.queueFamily = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
 
-	//VmaAllocatorCreateInfo allocatorInfo = {
-	//	.physicalDevice = chosenGPU,
-	//	.device = device,
-	//	.instance = instance,
-	//};
-	//vmaCreateAllocator(&allocatorInfo, &allocator);
+	VmaAllocatorCreateInfo allocatorInfo = {
+		.physicalDevice = chosenGPU,
+		.device = device,
+		.instance = instance,
+	};
+	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
 
 void Renderer::deinit() 
 {
+	vmaDestroyAllocator(allocator);
 	vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkb::destroy_debug_utils_messenger(instance, debugMessenger);
 	vkDestroyDevice(device, nullptr);
