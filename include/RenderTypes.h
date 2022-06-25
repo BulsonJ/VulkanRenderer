@@ -11,4 +11,10 @@ namespace RenderTypes {
 		SDL_Window* window = { nullptr };
 		VkExtent2D extent = { 1920 , 1080 };
 	};
+
+	struct QueueContext
+	{
+		VkQueue queue;
+		uint32_t queueFamily;
+	};
 }

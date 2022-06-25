@@ -4,12 +4,12 @@
 
 int main(int argc, char* argv[])
 {
-	Renderer test;
+	Renderer rend;
 
-	test.init();
+	rend.init();
 
-	test.run();
+	rend.run();
 
-	test.deinit();
+	rend.deinit();
 	return 0;
 }

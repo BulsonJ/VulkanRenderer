@@ -12,17 +12,17 @@ public:
 	void run();
 
 private:
-	RenderTypes::WindowContext window;
-
 	VkInstance instance;
-	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice chosenGPU;
 	VkPhysicalDeviceProperties gpuProperties;
 	VkDevice device;
+
 	VkSurfaceKHR surface;
 	VmaAllocator allocator;
+	VkDebugUtilsMessengerEXT debugMessenger;
+	RenderTypes::WindowContext window;
 
-	VkQueue graphicsQueue;
-	uint32_t graphicsQueueFamily;
+	RenderTypes::QueueContext graphics;
+	RenderTypes::QueueContext compute;
 
 };
