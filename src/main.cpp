@@ -1,8 +1,9 @@
+
 #include "Renderer.h"
 #include <iostream>
 
-
-int main() {
+int main(int argc, char* argv[])
+{
 	Renderer test;
 
 	test.init();

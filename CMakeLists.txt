@@ -18,3 +18,4 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
 add_subdirectory(third-party)
 target_link_libraries(VulkanRenderer vk-bootstrap)
+target_link_libraries(VulkanRenderer Vulkan::Vulkan SDL2)

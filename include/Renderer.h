@@ -9,6 +9,10 @@ public:
 	void deinit();
 
 private:
+	VkExtent2D windowExtent = { 1920 , 1080 };
+
+	struct SDL_Window* window = nullptr;
+
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice chosenGPU;

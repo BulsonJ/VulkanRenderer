@@ -1,10 +1,26 @@
 #include "Renderer.h"
 
+#include <SDL.h>
+#include <SDL_vulkan.h>
+
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
 
 void Renderer::init() 
 {
+	SDL_Init(SDL_INIT_VIDEO);
+
+	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
+
+	window = SDL_CreateWindow(
+		"Vulkan Renderer",
+		SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOWPOS_UNDEFINED,
+		windowExtent.width,
+		windowExtent.height,
+		window_flags
+	);
+
 	vkb::InstanceBuilder builder;
 
 	auto inst_ret = builder.set_app_name("Vulkan Renderer")
@@ -19,7 +35,7 @@ void Renderer::init()
 	instance = vkb_inst.instance;
 	debugMessenger = vkb_inst.debug_messenger;
 
-	//SDL_Vulkan_CreateSurface(window, instance, &surface);
+	SDL_Vulkan_CreateSurface(window, instance, &surface);
 
 	vkb::PhysicalDeviceSelector selector{ vkb_inst };
 	vkb::PhysicalDevice physicalDevice = selector
@@ -65,4 +81,6 @@ void Renderer::deinit()
 	vkb::destroy_debug_utils_messenger(instance, debugMessenger);
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instance, nullptr);
+
+	SDL_DestroyWindow(window);
 }
