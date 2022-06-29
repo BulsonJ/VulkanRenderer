@@ -43,11 +43,21 @@ void Renderer::draw()
 {
 	ZoneScoped;
 	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
-	vkResetFences(device, 1, &renderFen);
+
 
 	uint32_t swapchainImageIndex;
-	vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, presentSem, nullptr, &swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, presentSem, nullptr, &swapchainImageIndex);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	{
+		// resize
+		return;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		throw std::runtime_error("failed to acquire swap chain image!");
+	}
 
+	vkResetFences(device, 1, &renderFen);
 	vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0);
 
 	const VkCommandBuffer cmd = graphics.commands[getCurrentFrameNumber()].buffer;
@@ -71,7 +81,7 @@ void Renderer::draw()
 	};
 
 	const VkRect2D scissor{
-		.offset = {0,0},
+		.offset = {.x = 0,.y = 0},
 		.extent = window.extent
 	};
 
@@ -157,7 +167,7 @@ void Renderer::draw()
 
 	vkEndCommandBuffer(cmd);
 
-	VkPipelineStageFlags waitStage{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	const VkPipelineStageFlags waitStage { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	const VkSubmitInfo submit = {
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
