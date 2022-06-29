@@ -42,11 +42,11 @@ void Renderer::init()
 void Renderer::draw() 
 {
 	ZoneScoped;
-	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
+	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
 
 
 	uint32_t swapchainImageIndex;
-	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, presentSem, nullptr, &swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, frame.presentSem, nullptr, &swapchainImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
 		// resize
@@ -57,7 +57,7 @@ void Renderer::draw()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vkResetFences(device, 1, &renderFen);
+	vkResetFences(device, 1, &frame.renderFen);
 	vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0);
 
 	const VkCommandBuffer cmd = graphics.commands[getCurrentFrameNumber()].buffer;
@@ -173,21 +173,21 @@ void Renderer::draw()
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &presentSem,
+		.pWaitSemaphores = &frame.presentSem,
 		.pWaitDstStageMask = &waitStage,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &cmd,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &renderSem,
+		.pSignalSemaphores = &frame.renderSem,
 	};
 
-	vkQueueSubmit(graphics.queue, 1, &submit, renderFen);
+	vkQueueSubmit(graphics.queue, 1, &submit, frame.renderFen);
 
 	const VkPresentInfoKHR presentInfo = {
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &renderSem,
+		.pWaitSemaphores = &frame.renderSem,
 		.swapchainCount = 1,
 		.pSwapchains = &swapchain.swapchain,
 		.pImageIndices = &swapchainImageIndex,
@@ -332,7 +332,7 @@ void Renderer::initSyncStructures()
 		.flags = VK_FENCE_CREATE_SIGNALED_BIT
 	};
 
-	vkCreateFence(device, &fenceCreateInfo, nullptr, &renderFen);
+	vkCreateFence(device, &fenceCreateInfo, nullptr, &frame.renderFen);
 
 	const VkSemaphoreCreateInfo semaphoreCreateInfo = {
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -340,19 +340,19 @@ void Renderer::initSyncStructures()
 		.flags = 0
 	};
 
-	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &presentSem);
-	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &renderSem);
+	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.presentSem);
+	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.renderSem);
 }
 
 void Renderer::deinit() 
 {
 	ZoneScoped;
 
-	vkWaitForFences(device, 1, &renderFen, true, 1000000000);
+	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
 
-	vkDestroySemaphore(device, presentSem, nullptr);
-	vkDestroySemaphore(device, renderSem, nullptr);
-	vkDestroyFence(device, renderFen, nullptr);
+	vkDestroySemaphore(device, frame.presentSem, nullptr);
+	vkDestroySemaphore(device, frame.renderSem, nullptr);
+	vkDestroyFence(device, frame.renderFen, nullptr);
 
 	for (int i = 0; i < swapchain.imageViews.size(); i++)
 	{

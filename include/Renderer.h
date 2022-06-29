@@ -6,6 +6,13 @@
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 
+struct RenderFrame
+{
+	VkSemaphore presentSem;
+	VkSemaphore	renderSem;
+	VkFence renderFen;
+};
+
 class Renderer 
 {
 public:
@@ -35,12 +42,13 @@ private:
 
 	RenderTypes::QueueContext<FRAME_OVERLAP> graphics;
 	RenderTypes::QueueContext<1> compute;
-	VkSemaphore presentSem, renderSem;
-	VkFence renderFen;
+
+
 
 	RenderTypes::Swapchain swapchain;
 	uint32_t currentSwapchainImage;
 
+	RenderFrame frame;
 	int frameNumber;
 
 };
