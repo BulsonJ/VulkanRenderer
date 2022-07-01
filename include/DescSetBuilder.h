@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "VulkanTypes.h"
 
 namespace DescriptorSet
 {

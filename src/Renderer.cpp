@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include "VulkanInit.h"
+#include "VulkanTyp"
 #include "DescSetBuilder.h"
 #include "PipelineBuilder.h"
 
