@@ -5,14 +5,13 @@
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
-
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
-
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
-
 #include <iostream>
+
+#include "VulkanInit.h"
 
 void Renderer::init()
 {
@@ -36,6 +35,22 @@ void Renderer::init()
 	initGraphicsCommands();
 	initComputeCommands();
 	initSyncStructures();
+
+	initShaders();
+
+
+	//initImgui();
+	//
+	//initDescriptorLayouts();
+	//initDescriptors();
+	//initPipelines();
+	//initComputePipeline();
+	//
+	//loadMeshes();
+	//loadImages();
+	//
+	//initScene();
+	//buildComputeCommandBuffer();
 
 }
 
@@ -342,6 +357,21 @@ void Renderer::initSyncStructures()
 
 	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.presentSem);
 	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.renderSem);
+}
+
+void Renderer::initShaders() {
+
+	PipelineBuild::BuildInfo buildInfo{
+		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
+		.depthStencil = VulkanInit::depthStencilStateCreateInfo(false, false),
+		.pipelineLayout = VK_NULL_HANDLE,
+		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
+		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE), 
+					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE)},
+		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
+	};
+
+	//PipelineBuild::BuildPipeline(device, buildInfo);
 }
 
 void Renderer::deinit() 

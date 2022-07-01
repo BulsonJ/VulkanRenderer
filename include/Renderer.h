@@ -2,7 +2,9 @@
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#include <RenderTypes.h>
+
+#include "RenderTypes.h"
+#include "PipelineBuilder.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 
@@ -28,6 +30,7 @@ private:
 	void initGraphicsCommands();
 	void initComputeCommands();
 	void initSyncStructures();
+	void initShaders();
 
 	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
 
