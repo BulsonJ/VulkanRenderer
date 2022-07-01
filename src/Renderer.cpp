@@ -12,8 +12,6 @@
 #include <iostream>
 
 #include "VulkanInit.h"
-#include "DescSetBuilder.h"
-#include "PipelineBuilder.h"
 
 void Renderer::init()
 {
@@ -363,45 +361,17 @@ void Renderer::initSyncStructures()
 
 void Renderer::initShaders() {
 
-	DescriptorSet::LayoutBuildInfo layoutInfo{
-		.bindings = {
-			DescriptorSet::DescSetBind{DescriptorSet::BufferType::STORAGE, DescriptorSet::ShaderStage::PIXEL},
-			DescriptorSet::DescSetBind{DescriptorSet::BufferType::STORAGE, DescriptorSet::ShaderStage::PIXEL},
-			DescriptorSet::DescSetBind{DescriptorSet::BufferType::STORAGE, DescriptorSet::ShaderStage::PIXEL}
-		}
-	};
-
-	VkDescriptorSetLayout setLayout = DescriptorSet::CreateDescriptorSetLayout(device, layoutInfo);
-
-	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();;
-	defaultPipelineLayoutInfo.setLayoutCount = 1;
-	defaultPipelineLayoutInfo.pSetLayouts = &setLayout;
-
-	VkPipelineLayout defaultPipelineLayout;
-	vkCreatePipelineLayout(device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
-
 	PipelineBuild::BuildInfo buildInfo{
 		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
 		.depthStencil = VulkanInit::depthStencilStateCreateInfo(false, false),
-		.pipelineLayout = defaultPipelineLayout,
+		.pipelineLayout = VK_NULL_HANDLE,
 		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
 		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE), 
 					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE)},
 		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
 	};
 
-	PipelineBuild::BuildPipeline(device, buildInfo);
-
-
-	DescriptorSet::WriteInfo descSetWriteInfo{
-		.descriptorSetWrites = {
-			DescriptorSet::SetWriteInfo{DescriptorSet::BufferType::STORAGE, VK_NULL_HANDLE, VkDescriptorBufferInfo{.buffer = VK_NULL_HANDLE,.range = sizeof(uint32_t)}},
-			DescriptorSet::SetWriteInfo{DescriptorSet::BufferType::STORAGE, VK_NULL_HANDLE, VkDescriptorBufferInfo{.buffer = VK_NULL_HANDLE,.range = sizeof(uint32_t)}},
-			DescriptorSet::SetWriteInfo{DescriptorSet::BufferType::STORAGE, VK_NULL_HANDLE, VkDescriptorBufferInfo{.buffer = VK_NULL_HANDLE,.range = sizeof(uint32_t)}}
-		}
-	};
-
-	DescriptorSet::WriteDescriptorSet(device, descSetWriteInfo);
+	//PipelineBuild::BuildPipeline(device, buildInfo);
 }
 
 void Renderer::deinit() 
