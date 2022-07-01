@@ -14,5 +14,5 @@ namespace PipelineBuild {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	};
 
-	VkPipeline BuildPipeline(VkDevice device, BuildInfo pipelineBuildInfo);
+	VkPipeline BuildPipeline(VkDevice device, const BuildInfo& pipelineBuildInfo);
 };

@@ -1,6 +1,7 @@
 #include "PipelineBuilder.h"
 #include <assert.h>
-VkPipeline PipelineBuild::BuildPipeline(VkDevice device, BuildInfo buildInfo)
+
+VkPipeline PipelineBuild::BuildPipeline(VkDevice device, const BuildInfo& buildInfo)
 {
 	assert(buildInfo.shaderStages.empty() == false);
 	assert(buildInfo.pipelineLayout != VK_NULL_HANDLE);

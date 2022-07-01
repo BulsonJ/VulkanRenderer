@@ -4,7 +4,6 @@
 #include <vk_mem_alloc.h>
 
 #include "RenderTypes.h"
-#include "PipelineBuilder.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 
