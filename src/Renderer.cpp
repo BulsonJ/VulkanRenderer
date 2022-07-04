@@ -361,17 +361,61 @@ void Renderer::initSyncStructures()
 
 void Renderer::initShaders() {
 
+
+	// ------------------------ IMPROVE
+
+	const VkDescriptorSetLayoutBinding configBind = VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 0);
+
+	VkDescriptorSetLayoutCreateInfo descSetCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = 1,
+		.pBindings = &configBind,
+	};
+	vkCreateDescriptorSetLayout(device, &descSetCreateInfo, nullptr, &globalSetLayout);
+
+	VkDescriptorPoolSize poolSizes[] =
+	{
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
+	};
+	VkDescriptorPoolCreateInfo poolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.maxSets = 2,
+		.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes)),
+		.pPoolSizes = poolSizes,
+	};
+	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &globalPool);
+
+	VkDescriptorSetLayout setLayouts[] = { globalSetLayout };
+	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
+	defaultPipelineLayoutInfo.setLayoutCount = 1;
+	defaultPipelineLayoutInfo.pSetLayouts = setLayouts;
+
+	VkPipelineLayout defaultPipelineLayout;
+	vkCreatePipelineLayout(device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
+
+	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
+		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(device, fileLoc.c_str());
+		assert(shader.has_value());
+		std::cout << "Triangle fragment shader successfully loaded" << std::endl;
+		return shader.value();
+	};
+
+	VkShaderModule vertexShader = shaderLoadFunc((std::string)"TODO : Build Shader");
+	VkShaderModule pixelShader = shaderLoadFunc((std::string)"TODO : Build Shader");
+
+	// ------------------------ IMPROVE
+
 	PipelineBuild::BuildInfo buildInfo{
 		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
 		.depthStencil = VulkanInit::depthStencilStateCreateInfo(false, false),
-		.pipelineLayout = VK_NULL_HANDLE,
+		.pipelineLayout = defaultPipelineLayout,
 		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
-		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE), 
-					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, VK_NULL_HANDLE)},
+		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
+					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, pixelShader)},
 		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
 	};
 
-	//PipelineBuild::BuildPipeline(device, buildInfo);
+	PipelineBuild::BuildPipeline(device, buildInfo);
 }
 
 void Renderer::deinit() 

@@ -46,12 +46,12 @@ private:
 	RenderTypes::QueueContext<FRAME_OVERLAP> graphics;
 	RenderTypes::QueueContext<1> compute;
 
-
-
 	RenderTypes::Swapchain swapchain;
 	uint32_t currentSwapchainImage;
 
 	RenderFrame frame;
 	int frameNumber;
 
+	VkDescriptorSetLayout globalSetLayout;
+	VkDescriptorPool globalPool;
 };

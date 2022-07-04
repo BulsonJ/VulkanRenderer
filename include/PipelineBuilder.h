@@ -2,8 +2,11 @@
 
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <optional>
 
 namespace PipelineBuild {
+	std::optional<VkShaderModule> loadShaderModule(VkDevice device,const char* filePath);
+
 	struct BuildInfo
 	{
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
