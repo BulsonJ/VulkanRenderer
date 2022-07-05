@@ -390,7 +390,6 @@ void Renderer::initShaders() {
 	defaultPipelineLayoutInfo.setLayoutCount = 1;
 	defaultPipelineLayoutInfo.pSetLayouts = setLayouts;
 
-	VkPipelineLayout defaultPipelineLayout;
 	vkCreatePipelineLayout(device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
 
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
@@ -415,7 +414,7 @@ void Renderer::initShaders() {
 		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
 	};
 
-	PipelineBuild::BuildPipeline(device, buildInfo);
+	defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);
 
 	vkDestroyShaderModule(device, vertexShader, nullptr);
 	vkDestroyShaderModule(device, fragShader, nullptr);
@@ -426,6 +425,9 @@ void Renderer::deinit()
 	ZoneScoped;
 
 	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
+
+	vkDestroyPipelineLayout(device, defaultPipelineLayout, nullptr);
+	vkDestroyPipeline(device, defaultPipeline, nullptr);
 
 	vkDestroyDescriptorPool(device, globalPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, globalSetLayout, nullptr);

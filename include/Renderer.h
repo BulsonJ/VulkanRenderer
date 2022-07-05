@@ -54,4 +54,7 @@ private:
 
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
+
+	VkPipelineLayout defaultPipelineLayout;
+	VkPipeline defaultPipeline;
 };
