@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <fstream>
 
-std::optional<VkShaderModule> loadShaderModule(VkDevice device, const char* filePath){
+std::optional<VkShaderModule> PipelineBuild::loadShaderModule(VkDevice device, const char* filePath){
 	//open the file. With cursor at the end
 	std::ifstream file(filePath, std::ios::ate | std::ios::binary);
 

@@ -400,8 +400,8 @@ void Renderer::initShaders() {
 		return shader.value();
 	};
 
-	VkShaderModule vertexShader = shaderLoadFunc((std::string)"TODO : Build Shader");
-	VkShaderModule pixelShader = shaderLoadFunc((std::string)"TODO : Build Shader");
+	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../assets/shaders/default.vert.spv");
+	VkShaderModule fragShader = shaderLoadFunc((std::string)"../assets/shaders/default.frag.spv");
 
 	// ------------------------ IMPROVE
 
@@ -411,11 +411,14 @@ void Renderer::initShaders() {
 		.pipelineLayout = defaultPipelineLayout,
 		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
 		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
-					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, pixelShader)},
+					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
 		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
 	};
 
 	PipelineBuild::BuildPipeline(device, buildInfo);
+
+	vkDestroyShaderModule(device, vertexShader, nullptr);
+	vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
 void Renderer::deinit() 
@@ -423,6 +426,9 @@ void Renderer::deinit()
 	ZoneScoped;
 
 	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
+
+	vkDestroyDescriptorPool(device, globalPool, nullptr);
+	vkDestroyDescriptorSetLayout(device, globalSetLayout, nullptr);
 
 	vkDestroySemaphore(device, frame.presentSem, nullptr);
 	vkDestroySemaphore(device, frame.renderSem, nullptr);
