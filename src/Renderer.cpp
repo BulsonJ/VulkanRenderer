@@ -150,6 +150,11 @@ void Renderer::draw()
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
+	vkCmdDraw(cmd, 3, 1, 0, 0);
+
+
 	vkCmdEndRendering(cmd);
 
 	const VkImageMemoryBarrier imgMemBarrier{

@@ -76,9 +76,8 @@ VkPipelineVertexInputStateCreateInfo VulkanInit::vertexInputStateCreateInfo()
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.pNext = nullptr,
 
-		//no vertex bindings or attributes
-			.vertexBindingDescriptionCount = 0,
-			.vertexAttributeDescriptionCount = 0,
+		.vertexBindingDescriptionCount = 0,
+		.vertexAttributeDescriptionCount = 0,
 	};
 	return info;
 }

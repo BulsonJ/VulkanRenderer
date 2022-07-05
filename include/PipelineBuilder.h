@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
+
 #include <vulkan/vulkan.h>
+#include <vector>
 #include <optional>
 
 namespace PipelineBuild {
@@ -17,5 +18,5 @@ namespace PipelineBuild {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	};
 
-	VkPipeline BuildPipeline(VkDevice device, BuildInfo pipelineBuildInfo);
+	VkPipeline BuildPipeline(VkDevice device, const BuildInfo& pipelineBuildInfo);
 };
