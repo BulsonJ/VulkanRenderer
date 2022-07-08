@@ -5,6 +5,7 @@
 
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
+#include "ResourceManager.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 
@@ -54,6 +55,8 @@ private:
 
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
+	VkDescriptorSet globalSet;
+	Handle<Buffer> globalBuffer;
 
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;

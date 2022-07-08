@@ -39,6 +39,7 @@ void Renderer::init()
 	initShaders();
 
 
+
 	//initImgui();
 	//
 	//initDescriptorLayouts();
@@ -137,7 +138,7 @@ void Renderer::draw()
 		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.clearValue = { 
-			.color = {0.1f, 0.1f, abs(sin(frameNumber / 120.f)), 1.0f}
+			.color = {0.0f, 0.0f, 0.0f, 1.0f}
 		}
 	};
 
@@ -150,10 +151,8 @@ void Renderer::draw()
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
-
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 	vkCmdDraw(cmd, 3, 1, 0, 0);
-
 
 	vkCmdEndRendering(cmd);
 
@@ -270,6 +269,8 @@ void Renderer::initVulkan() {
 		.instance = instance,
 	};
 	vmaCreateAllocator(&allocatorInfo, &allocator);
+
+	ResourceManager::ptr = new ResourceManager(device, allocator);
 }
 
 void Renderer::createSwapchain()
@@ -366,10 +367,10 @@ void Renderer::initSyncStructures()
 
 void Renderer::initShaders() {
 
-
+	ZoneScoped;
 	// ------------------------ IMPROVE
 
-	const VkDescriptorSetLayoutBinding configBind = VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL, 0);
+	const VkDescriptorSetLayoutBinding configBind = VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
 
 	VkDescriptorSetLayoutCreateInfo descSetCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -381,6 +382,7 @@ void Renderer::initShaders() {
 	VkDescriptorPoolSize poolSizes[] =
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
 	};
 	VkDescriptorPoolCreateInfo poolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -389,6 +391,28 @@ void Renderer::initShaders() {
 		.pPoolSizes = poolSizes,
 	};
 	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &globalPool);
+
+	const VkDescriptorSetAllocateInfo allocInfo = {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.descriptorPool = globalPool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &globalSetLayout,
+	};
+
+	vkAllocateDescriptorSets(device, &allocInfo, &globalSet);
+
+	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(uint32_t), .usage = BufferCreateInfo::Usage::STORAGE });
+
+	VkDescriptorBufferInfo globalBufferInfo{
+		.buffer = ResourceManager::ptr->GetBuffer(globalBuffer).buffer,
+		.offset = 0,
+		.range = sizeof(uint32_t),
+	};
+
+	const VkWriteDescriptorSet transformWrite = VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalSet, &globalBufferInfo, 0);
+
+	vkUpdateDescriptorSets(device, 1, &transformWrite, 0, nullptr);
 
 	VkDescriptorSetLayout setLayouts[] = { globalSetLayout };
 	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
@@ -419,7 +443,7 @@ void Renderer::initShaders() {
 		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
 	};
 
-	defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);
+	defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);	
 
 	vkDestroyShaderModule(device, vertexShader, nullptr);
 	vkDestroyShaderModule(device, fragShader, nullptr);
@@ -430,6 +454,8 @@ void Renderer::deinit()
 	ZoneScoped;
 
 	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
+
+	delete ResourceManager::ptr;
 
 	vkDestroyPipelineLayout(device, defaultPipelineLayout, nullptr);
 	vkDestroyPipeline(device, defaultPipeline, nullptr);
