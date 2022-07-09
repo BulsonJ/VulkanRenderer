@@ -2,9 +2,14 @@
 
 layout (location = 0) out vec3 outColor;
 
-layout(std140,set = 0, binding = 0) uniform  CameraBuffer{
-	mat4 view;
-} cameraData;
+layout( push_constant ) uniform constants
+{
+	int transformIndex;
+} pushConstans;
+
+layout(std140,set = 0, binding = 0) uniform  TransformBuffer{
+	mat4 modelMatrix;
+} transformData;
 
 void main(void)		{
 	//const array of positions for the triangle

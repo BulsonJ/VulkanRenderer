@@ -5,6 +5,7 @@
 
 #include <array>
 
+
 struct BufferCreateInfo
 {
 	uint32_t size;
@@ -28,6 +29,12 @@ struct Buffer
 	VmaAllocation allocation;
 };
 
+struct BufferView
+{
+	Handle<Buffer> buffer;
+	uint32_t size;
+};
+
 class ResourceManager
 {
 public:
@@ -35,8 +42,9 @@ public:
 	ResourceManager(const VkDevice device, const VmaAllocator allocator) : device(device), allocator(allocator) {}
 	~ResourceManager();
 
-	Handle<Buffer> CreateBuffer(const BufferCreateInfo& createInfo);
+	BufferView CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const Handle<Buffer>& buffer);
+	void* GetMappedData(Handle<Buffer> handle);
 protected:
 	const VkDevice device;
 	const VmaAllocator allocator;

@@ -402,22 +402,36 @@ void Renderer::initShaders() {
 
 	vkAllocateDescriptorSets(device, &allocInfo, &globalSet);
 
-	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(uint32_t), .usage = BufferCreateInfo::Usage::STORAGE });
+	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
 
 	VkDescriptorBufferInfo globalBufferInfo{
-		.buffer = ResourceManager::ptr->GetBuffer(globalBuffer).buffer,
+		.buffer = ResourceManager::ptr->GetBuffer(globalBuffer.buffer).buffer,
 		.offset = 0,
-		.range = sizeof(uint32_t),
+		.range = globalBuffer.size,
 	};
 
 	const VkWriteDescriptorSet transformWrite = VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalSet, &globalBufferInfo, 0);
 
 	vkUpdateDescriptorSets(device, 1, &transformWrite, 0, nullptr);
 
+	// fill transforms
+
+	GPUTransform transformData[MAX_OBJECTS]{};
+
+	memcpy(ResourceManager::ptr->GetMappedData(globalBuffer.buffer), &transformData, globalBuffer.size);
+
+	VkPushConstantRange defaultPushConstants{
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		.offset = 0,
+		.size = sizeof(GPUPushConstants),
+	};
+
 	VkDescriptorSetLayout setLayouts[] = { globalSetLayout };
 	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
 	defaultPipelineLayoutInfo.setLayoutCount = 1;
 	defaultPipelineLayoutInfo.pSetLayouts = setLayouts;
+	defaultPipelineLayoutInfo.pushConstantRangeCount = 1;
+	defaultPipelineLayoutInfo.pPushConstantRanges = &defaultPushConstants;
 
 	vkCreatePipelineLayout(device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
 

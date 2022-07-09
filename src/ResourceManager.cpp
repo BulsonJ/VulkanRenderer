@@ -19,7 +19,7 @@ Buffer ResourceManager::GetBuffer(const Handle<Buffer>& buffer)
 	return buffers[buffer.slot];
 }
 
-Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
+BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 {
 	VkBufferCreateInfo bufferInfo = {
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -53,5 +53,21 @@ Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	Handle<Buffer> newHandle = getNewBufferHandle();
 	buffers[newHandle.slot] = newBuffer;
 
-	return newHandle;
+	BufferView newView{
+		.buffer = newHandle,
+		.size = createInfo.size,
+	};
+
+	return newView;
 }
+
+
+void* ResourceManager::GetMappedData(Handle<Buffer> handle)
+{
+
+	VmaAllocationInfo allocInfo;
+	vmaGetAllocationInfo(allocator, buffers[handle.slot].allocation, &allocInfo);
+	return allocInfo.pMappedData;
+}
+
+

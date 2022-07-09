@@ -2,12 +2,24 @@
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+#include <glm.hpp>
 
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
+constexpr unsigned int MAX_OBJECTS = 100;
+
+struct GPUPushConstants
+{
+	int transformIndex;
+};
+
+struct GPUTransform
+{
+	glm::mat4 modelMatrix;
+};
 
 struct RenderFrame
 {
@@ -56,7 +68,7 @@ private:
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
 	VkDescriptorSet globalSet;
-	Handle<Buffer> globalBuffer;
+	BufferView globalBuffer;
 
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
