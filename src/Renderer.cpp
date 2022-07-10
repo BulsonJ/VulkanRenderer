@@ -152,7 +152,19 @@ void Renderer::draw()
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
-	vkCmdDraw(cmd, 3, 1, 0, 0);
+
+	const VkDeviceSize offset { 0 };
+	const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
+	vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
+	if (triangleMesh.has_indices()) {
+		const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
+		vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(triangleMesh.indices.size()), 1, 0, 0, 0);
+	}
+	else
+	{
+		vkCmdDraw(cmd, static_cast<uint32_t>(triangleMesh.vertices.size()), 1, 0, 0);
+	}
 
 	vkCmdEndRendering(cmd);
 
@@ -418,7 +430,7 @@ void Renderer::initShaders() {
 
 	GPUTransform transformData[MAX_OBJECTS]{};
 
-	memcpy(ResourceManager::ptr->GetMappedData(globalBuffer.buffer), &transformData, globalBuffer.size);
+	memcpy(ResourceManager::ptr->GetBuffer(globalBuffer.buffer).ptr, &transformData, globalBuffer.size);
 
 	VkPushConstantRange defaultPushConstants{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,

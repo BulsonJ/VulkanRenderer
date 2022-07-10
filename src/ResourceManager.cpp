@@ -50,6 +50,10 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 		&newBuffer.allocation,
 		nullptr);
 
+	VmaAllocationInfo allocInfo;
+	vmaGetAllocationInfo(allocator, newBuffer.allocation, &allocInfo);
+	newBuffer.ptr = allocInfo.pMappedData;
+
 	Handle<Buffer> newHandle = getNewBufferHandle();
 	buffers[newHandle.slot] = newBuffer;
 
@@ -59,15 +63,6 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	};
 
 	return newView;
-}
-
-
-void* ResourceManager::GetMappedData(Handle<Buffer> handle)
-{
-
-	VmaAllocationInfo allocInfo;
-	vmaGetAllocationInfo(allocator, buffers[handle.slot].allocation, &allocInfo);
-	return allocInfo.pMappedData;
 }
 
 

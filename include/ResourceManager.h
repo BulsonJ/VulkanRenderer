@@ -27,6 +27,7 @@ struct Buffer
 {
 	VkBuffer buffer;
 	VmaAllocation allocation;
+	void* ptr;
 };
 
 struct BufferView
@@ -44,7 +45,6 @@ public:
 
 	BufferView CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const Handle<Buffer>& buffer);
-	void* GetMappedData(Handle<Buffer> handle);
 protected:
 	const VkDevice device;
 	const VmaAllocator allocator;

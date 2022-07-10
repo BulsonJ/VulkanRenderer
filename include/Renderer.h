@@ -7,6 +7,7 @@
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
+#include "Mesh.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
@@ -72,4 +73,6 @@ private:
 
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
+
+	Mesh triangleMesh{ Mesh::generate_triangle() };
 };
