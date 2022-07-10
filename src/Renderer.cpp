@@ -42,12 +42,8 @@ void Renderer::init()
 
 	//initImgui();
 	//
-	//initDescriptorLayouts();
-	//initDescriptors();
-	//initPipelines();
-	//initComputePipeline();
 	//
-	//loadMeshes();
+	loadMeshes();
 	//loadImages();
 	//
 	//initScene();
@@ -329,6 +325,13 @@ void Renderer::initGraphicsCommands()
 
 		vkAllocateCommandBuffers(device, &bufferAllocInfo, &graphics.commands[i].buffer);
 	}
+
+
+	const VkCommandPoolCreateInfo uploadCommandPoolInfo = VulkanInit::commandPoolCreateInfo(graphics.queueFamily);
+	vkCreateCommandPool(device, &uploadCommandPoolInfo, nullptr, &uploadContext.commandPool);
+
+	const VkCommandBufferAllocateInfo cmdAllocInfo = VulkanInit::commandBufferAllocateInfo(uploadContext.commandPool, 1);
+	vkAllocateCommandBuffers(device, &cmdAllocInfo, &uploadContext.commandBuffer);
 }
 
 void Renderer::initComputeCommands(){
@@ -366,6 +369,9 @@ void Renderer::initSyncStructures()
 	};
 
 	vkCreateFence(device, &fenceCreateInfo, nullptr, &frame.renderFen);
+
+	const VkFenceCreateInfo uploadFenceCreateInfo = VulkanInit::fenceCreateInfo();
+	vkCreateFence(device, &uploadFenceCreateInfo, nullptr, &uploadContext.uploadFence);
 
 	const VkSemaphoreCreateInfo semaphoreCreateInfo = {
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -475,6 +481,12 @@ void Renderer::initShaders() {
 	vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
+
+void Renderer::loadMeshes()
+{
+	uploadMesh(triangleMesh);
+}
+
 void Renderer::deinit() 
 {
 	ZoneScoped;
@@ -488,6 +500,9 @@ void Renderer::deinit()
 
 	vkDestroyDescriptorPool(device, globalPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, globalSetLayout, nullptr);
+
+	vkDestroyFence(device, uploadContext.uploadFence, nullptr);
+	vkDestroyCommandPool(device, uploadContext.commandPool, nullptr);
 
 	vkDestroySemaphore(device, frame.presentSem, nullptr);
 	vkDestroySemaphore(device, frame.renderSem, nullptr);
@@ -510,4 +525,61 @@ void Renderer::deinit()
 	vkDestroyInstance(instance, nullptr);
 
 	SDL_DestroyWindow(window.window);
+}
+
+void Renderer::uploadMesh(Mesh& mesh)
+{
+	const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
+
+	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		.size = bufferSize,
+		.usage = BufferCreateInfo::Usage::VERTEX,
+		.transfer = BufferCreateInfo::Transfer::SRC,
+	});
+
+	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.vertices.data(), bufferSize);
+
+	mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		.size = bufferSize,
+		.usage = BufferCreateInfo::Usage::VERTEX,
+		.transfer = BufferCreateInfo::Transfer::DST,
+	});
+
+	const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
+	const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer.buffer);
+
+	immediateSubmit([=](VkCommandBuffer cmd) {
+		VkBufferCopy copy;
+		copy.dstOffset = 0;
+		copy.srcOffset = 0;
+		copy.size = bufferSize;
+		vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
+		});
+
+	ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+
+	if (!mesh.has_indices()) return;
+}
+
+
+void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
+{
+	VkCommandBuffer cmd = uploadContext.commandBuffer;
+
+	VkCommandBufferBeginInfo cmdBeginInfo = VulkanInit::commandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+	vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+	function(cmd);
+
+	vkEndCommandBuffer(cmd);
+
+	VkSubmitInfo submit = VulkanInit::submitInfo(&cmd);
+
+	vkQueueSubmit(graphics.queue, 1, &submit, uploadContext.uploadFence);
+
+	vkWaitForFences(device, 1, &uploadContext.uploadFence, true, 9999999999);
+	vkResetFences(device, 1, &uploadContext.uploadFence);
+
+	vkResetCommandPool(device, uploadContext.commandPool, 0);
 }

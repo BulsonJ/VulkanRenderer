@@ -8,14 +8,21 @@
 
 struct BufferCreateInfo
 {
-	uint32_t size;
+	std::size_t size;
 
-	enum class Usage {
+	enum class Usage 
+	{
 		UNIFORM,
-		STORAGE
-	};
+		STORAGE,
+		VERTEX
+	} usage;
 
-	Usage usage;
+	enum class Transfer
+	{
+		NONE,
+		SRC,
+		DST
+	} transfer {Transfer::NONE};
 };
 
 template <typename T>
@@ -33,7 +40,7 @@ struct Buffer
 struct BufferView
 {
 	Handle<Buffer> buffer;
-	uint32_t size;
+	std::size_t size;
 };
 
 class ResourceManager
@@ -45,6 +52,7 @@ public:
 
 	BufferView CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const Handle<Buffer>& buffer);
+	void DestroyBuffer(const Handle<Buffer>& buffer);
 protected:
 	const VkDevice device;
 	const VmaAllocator allocator;

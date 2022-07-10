@@ -26,6 +26,13 @@ namespace RenderTypes {
 		CommandContext commands[FRAMES];
 	};
 
+	struct UploadContext
+	{
+		VkFence uploadFence;
+		VkCommandPool commandPool;
+		VkCommandBuffer commandBuffer;
+	};
+
 	struct Swapchain
 	{
 		VkSwapchainKHR swapchain;

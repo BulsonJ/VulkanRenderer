@@ -14,6 +14,8 @@ ResourceManager::~ResourceManager()
 	}
 }
 
+
+
 Buffer ResourceManager::GetBuffer(const Handle<Buffer>& buffer)
 {
 	return buffers[buffer.slot];
@@ -34,6 +36,24 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 		break;
 	case BufferCreateInfo::Usage::STORAGE:
 		bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		break;
+	case BufferCreateInfo::Usage::VERTEX:
+		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		break;
+	}
+
+	switch (createInfo.transfer)
+	{
+	default:
+		break;
+	case BufferCreateInfo::Transfer::NONE:
+		bufferInfo.usage = bufferInfo.usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		break;
+	case BufferCreateInfo::Transfer::SRC:
+		bufferInfo.usage = bufferInfo.usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		break;
+	case BufferCreateInfo::Transfer::DST:
+		bufferInfo.usage = bufferInfo.usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		break;
 	}
 
@@ -63,6 +83,16 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	};
 
 	return newView;
+}
+
+void ResourceManager::DestroyBuffer(const Handle<Buffer>& buffer)
+{
+	Buffer& deleteBuffer = buffers[buffer.slot];
+	if (deleteBuffer.buffer != VK_NULL_HANDLE)
+	{
+		vmaDestroyBuffer(allocator, deleteBuffer.buffer, deleteBuffer.allocation);
+	}
+	deleteBuffer.buffer = VK_NULL_HANDLE;
 }
 
 

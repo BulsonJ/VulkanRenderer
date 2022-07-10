@@ -4,6 +4,8 @@
 #include <vk_mem_alloc.h>
 #include <glm.hpp>
 
+#include <functional>
+
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
@@ -45,6 +47,10 @@ private:
 	void initComputeCommands();
 	void initSyncStructures();
 	void initShaders();
+	void loadMeshes();
+
+	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+	void uploadMesh(Mesh& mesh);
 
 	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
 
@@ -59,6 +65,8 @@ private:
 
 	RenderTypes::QueueContext<FRAME_OVERLAP> graphics;
 	RenderTypes::QueueContext<1> compute;
+	RenderTypes::UploadContext uploadContext;
+
 
 	RenderTypes::Swapchain swapchain;
 	uint32_t currentSwapchainImage;
