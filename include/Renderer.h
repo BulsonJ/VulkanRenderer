@@ -82,5 +82,5 @@ private:
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
 
-	Mesh triangleMesh{ Mesh::generate_triangle() };
+	Mesh triangleMesh{ Mesh::GenerateQuad() };
 };

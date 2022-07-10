@@ -3,7 +3,7 @@
 #include <iostream>
 #include <array>
 
-VertexInputDescription Vertex::get_vertex_description()
+VertexInputDescription Vertex::getVertexDescription()
 {
 	VertexInputDescription description;
 
@@ -50,7 +50,7 @@ VertexInputDescription Vertex::get_vertex_description()
 	return description;
 }
 
-Mesh Mesh::generate_triangle() {
+Mesh Mesh::GenerateTriangle() {
 	Mesh _triangleMesh;
 
 	_triangleMesh.vertices.resize(3);
@@ -74,7 +74,7 @@ Mesh Mesh::generate_triangle() {
 	return _triangleMesh;
 }
 
-Mesh Mesh::generate_quad() {
+Mesh Mesh::GenerateQuad() {
 	Mesh mesh;
 
 	mesh.vertices.resize(4);
@@ -110,7 +110,7 @@ Mesh Mesh::generate_quad() {
 	return mesh;
 }
 
-Mesh Mesh::generate_cube() {
+Mesh Mesh::GenerateCube() {
 	Mesh mesh;
 
 	mesh.vertices.resize(4*6);
@@ -209,7 +209,7 @@ Mesh Mesh::generate_cube() {
 	return mesh;
 }
 
-Mesh Mesh::generate_skybox_cube() {
+Mesh Mesh::GenerateSkyboxCube() {
 	Mesh mesh;
 
 	mesh.vertices.resize(4 * 6);
@@ -308,7 +308,7 @@ Mesh Mesh::generate_skybox_cube() {
 	return mesh;
 }
 
-Mesh Mesh::generate_plane(int size) {
+Mesh Mesh::GeneratePlane(int size) {
 	Mesh mesh;
 
 	const int meshSize = size + 1;
@@ -350,7 +350,7 @@ Mesh Mesh::generate_plane(int size) {
 	return mesh;
 }
 
-bool Mesh::has_indices() const {
+bool Mesh::hasIndices() const {
 	if (this->indices.size() > 0) {
 		return true;
 	}

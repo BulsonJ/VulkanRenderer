@@ -40,6 +40,9 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	case BufferCreateInfo::Usage::VERTEX:
 		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		break;
+	case BufferCreateInfo::Usage::INDEX:
+		bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		break;
 	}
 
 	switch (createInfo.transfer)

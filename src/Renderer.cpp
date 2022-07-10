@@ -152,8 +152,8 @@ void Renderer::draw()
 	const VkDeviceSize offset { 0 };
 	const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
 	vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
-	if (triangleMesh.has_indices()) {
-		const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
+	if (triangleMesh.hasIndices()) {
+		const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.indexBuffer.buffer).buffer;
 		vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(triangleMesh.indices.size()), 1, 0, 0, 0);
 	}
@@ -463,6 +463,13 @@ void Renderer::initShaders() {
 	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../assets/shaders/default.vert.spv");
 	VkShaderModule fragShader = shaderLoadFunc((std::string)"../assets/shaders/default.frag.spv");
 
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
+	VertexInputDescription vertexDescription = Vertex::getVertexDescription();
+	vertexInputInfo.pVertexAttributeDescriptions = vertexDescription.attributes.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDescription.attributes.size());
+	vertexInputInfo.pVertexBindingDescriptions = vertexDescription.bindings.data();
+	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexDescription.bindings.size());
+
 	// ------------------------ IMPROVE
 
 	PipelineBuild::BuildInfo buildInfo{
@@ -472,7 +479,7 @@ void Renderer::initShaders() {
 		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
 		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
 					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
-		.vertexInputInfo = VulkanInit::vertexInputStateCreateInfo(),
+		.vertexInputInfo = vertexInputInfo,
 	};
 
 	defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);	
@@ -529,36 +536,69 @@ void Renderer::deinit()
 
 void Renderer::uploadMesh(Mesh& mesh)
 {
-	const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
+	{
+		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
 
-	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
-		.size = bufferSize,
-		.usage = BufferCreateInfo::Usage::VERTEX,
-		.transfer = BufferCreateInfo::Transfer::SRC,
-	});
+		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = bufferSize,
+			.usage = BufferCreateInfo::Usage::VERTEX,
+			.transfer = BufferCreateInfo::Transfer::SRC,
+			});
 
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.vertices.data(), bufferSize);
+		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.vertices.data(), bufferSize);
 
-	mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
-		.size = bufferSize,
-		.usage = BufferCreateInfo::Usage::VERTEX,
-		.transfer = BufferCreateInfo::Transfer::DST,
-	});
+		mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = bufferSize,
+			.usage = BufferCreateInfo::Usage::VERTEX,
+			.transfer = BufferCreateInfo::Transfer::DST,
+			});
 
-	const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
-	const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer.buffer);
+		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer.buffer);
 
-	immediateSubmit([=](VkCommandBuffer cmd) {
-		VkBufferCopy copy;
-		copy.dstOffset = 0;
-		copy.srcOffset = 0;
-		copy.size = bufferSize;
-		vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
-		});
+		immediateSubmit([=](VkCommandBuffer cmd) {
+			VkBufferCopy copy;
+			copy.dstOffset = 0;
+			copy.srcOffset = 0;
+			copy.size = bufferSize;
+			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
+			});
 
-	ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+		ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+	}
 
-	if (!mesh.has_indices()) return;
+	if (!mesh.hasIndices()) return;
+
+	{
+		const size_t bufferSize = mesh.indices.size() * sizeof(Vertex);
+
+		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = bufferSize,
+			.usage = BufferCreateInfo::Usage::INDEX,
+			.transfer = BufferCreateInfo::Transfer::SRC,
+			});
+
+		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.indices.data(), bufferSize);
+
+		mesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = bufferSize,
+			.usage = BufferCreateInfo::Usage::INDEX,
+			.transfer = BufferCreateInfo::Transfer::DST,
+			});
+
+		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.indexBuffer.buffer);
+
+		immediateSubmit([=](VkCommandBuffer cmd) {
+			VkBufferCopy copy;
+			copy.dstOffset = 0;
+			copy.srcOffset = 0;
+			copy.size = bufferSize;
+			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
+			});
+
+		ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+	}
 }
 
 

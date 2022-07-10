@@ -14,7 +14,8 @@ struct BufferCreateInfo
 	{
 		UNIFORM,
 		STORAGE,
-		VERTEX
+		VERTEX,
+		INDEX
 	} usage;
 
 	enum class Transfer

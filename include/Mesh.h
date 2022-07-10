@@ -22,7 +22,7 @@ struct Vertex {
 	glm::vec3 color;
 	glm::vec2 uv;
 
-	static VertexInputDescription get_vertex_description();
+	static VertexInputDescription getVertexDescription();
 };
 
 struct Mesh {
@@ -32,7 +32,7 @@ struct Mesh {
 	BufferView vertexBuffer;
 	BufferView indexBuffer;
 
-	bool has_indices() const;
+	bool hasIndices() const;
 
 	static glm::vec3 CalculateSurfaceNormal(glm::vec3 pointA, glm::vec3 pointB, glm::vec3 pointC) {
 		const glm::vec3 sideAB = pointB - pointA;
@@ -41,9 +41,9 @@ struct Mesh {
 		return glm::cross(sideAB, sideAC);
 	}
 
-	static Mesh generate_triangle();
-	static Mesh generate_quad();
-	static Mesh generate_cube();
-	static Mesh generate_skybox_cube();
-	static Mesh generate_plane(int size);
+	static Mesh GenerateTriangle();
+	static Mesh GenerateQuad();
+	static Mesh GenerateCube();
+	static Mesh GenerateSkyboxCube();
+	static Mesh GeneratePlane(int size);
 };
