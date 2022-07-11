@@ -7,41 +7,41 @@ VertexInputDescription Vertex::getVertexDescription()
 {
 	VertexInputDescription description;
 
-	//we will have just 1 vertex buffer binding, with a per-vertex rate
-	VkVertexInputBindingDescription mainBinding = {};
-	mainBinding.binding = 0;
-	mainBinding.stride = sizeof(Vertex);
-	mainBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	const VkVertexInputBindingDescription mainBinding = {
+		.binding = 0,
+		.stride = sizeof(Vertex),
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+	};
 
 	description.bindings.push_back(mainBinding);
 
-	//Position will be stored at Location 0
-	VkVertexInputAttributeDescription positionAttribute = {};
-	positionAttribute.binding = 0;
-	positionAttribute.location = 0;
-	positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	positionAttribute.offset = offsetof(Vertex, position);
+	const VkVertexInputAttributeDescription positionAttribute = {
+		.location = 0,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(Vertex, position),
+	};
 
-	//Normal will be stored at Location 1
-	VkVertexInputAttributeDescription normalAttribute = {};
-	normalAttribute.binding = 0;
-	normalAttribute.location = 1;
-	normalAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	normalAttribute.offset = offsetof(Vertex, normal);
+	const VkVertexInputAttributeDescription normalAttribute = {
+		.location = 1,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(Vertex, normal),
+	};
 
-	//Color will be stored at Location 2
-	VkVertexInputAttributeDescription colorAttribute = {};
-	colorAttribute.binding = 0;
-	colorAttribute.location = 2;
-	colorAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	colorAttribute.offset = offsetof(Vertex, color);
+	const VkVertexInputAttributeDescription colorAttribute = {
+		.location = 2,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(Vertex, color),
+	};
 
-	//UV will be stored at Location 3
-	VkVertexInputAttributeDescription uvAttribute = {};
-	uvAttribute.binding = 0;
-	uvAttribute.location = 3;
-	uvAttribute.format = VK_FORMAT_R32G32_SFLOAT;
-	uvAttribute.offset = offsetof(Vertex, uv);
+	const VkVertexInputAttributeDescription uvAttribute = {
+		.location = 3,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32_SFLOAT,
+		.offset = offsetof(Vertex, uv),
+	};
 
 	description.attributes.push_back(positionAttribute);
 	description.attributes.push_back(normalAttribute);
@@ -51,27 +51,27 @@ VertexInputDescription Vertex::getVertexDescription()
 }
 
 Mesh Mesh::GenerateTriangle() {
-	Mesh _triangleMesh;
+	Mesh triangleMesh;
 
-	_triangleMesh.vertices.resize(3);
+	triangleMesh.vertices.resize(3);
 
-	_triangleMesh.vertices[0].position = {	 0.5f, 0.5f, 0.0f };
-	_triangleMesh.vertices[1].position = { -0.5f, 0.5f, 0.0f };
-	_triangleMesh.vertices[2].position = { -0.5f,-0.5f, 0.0f };
+	triangleMesh.vertices[0].position = { 0.0f,-0.5f, 0.0f };
+	triangleMesh.vertices[1].position = { 0.5f, 0.5f, 0.0f };
+	triangleMesh.vertices[2].position = { -0.5f, 0.5f, 0.0f };
 
-	_triangleMesh.vertices[0].normal = { 0.f, 1.f, 0.0f };
-	_triangleMesh.vertices[1].normal = { 0.f, 1.f, 0.0f };
-	_triangleMesh.vertices[2].normal = { 0.f, 1.f, 0.0f };
+	triangleMesh.vertices[0].normal = { 0.f, 1.f, 0.0f };
+	triangleMesh.vertices[1].normal = { 0.f, 1.f, 0.0f };
+	triangleMesh.vertices[2].normal = { 0.f, 1.f, 0.0f };
 
-	_triangleMesh.vertices[0].color = { 0.f, 1.f, 0.0f };
-	_triangleMesh.vertices[1].color = { 0.f, 1.f, 0.0f };
-	_triangleMesh.vertices[2].color = { 0.f, 1.f, 0.0f };
+	triangleMesh.vertices[0].color = { 1.f, 0.f, 0.0f };
+	triangleMesh.vertices[1].color = { 0.f, 1.f, 0.0f };
+	triangleMesh.vertices[2].color = { 0.f, 0.f, 1.0f };
 
-	_triangleMesh.vertices[0].uv = { 0.f, 1.f};
-	_triangleMesh.vertices[1].uv = { 1.f, 0.f};
-	_triangleMesh.vertices[2].uv = { 0.f, 0.f};
+	triangleMesh.vertices[0].uv = { 0.f, 1.f};
+	triangleMesh.vertices[1].uv = { 1.f, 0.f};
+	triangleMesh.vertices[2].uv = { 0.f, 0.f};
 
-	return _triangleMesh;
+	return triangleMesh;
 }
 
 Mesh Mesh::GenerateQuad() {
