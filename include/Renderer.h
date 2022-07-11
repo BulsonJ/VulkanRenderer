@@ -10,6 +10,7 @@
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
 #include "Mesh.h"
+#include "DescriptorSet.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;

@@ -388,14 +388,7 @@ void Renderer::initShaders() {
 	ZoneScoped;
 	// ------------------------ IMPROVE
 
-	const VkDescriptorSetLayoutBinding configBind = VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_ALL, 0);
-
-	VkDescriptorSetLayoutCreateInfo descSetCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		.bindingCount = 1,
-		.pBindings = &configBind,
-	};
-	vkCreateDescriptorSetLayout(device, &descSetCreateInfo, nullptr, &globalSetLayout);
+	// create descriptor pool
 
 	VkDescriptorPoolSize poolSizes[] =
 	{
@@ -410,27 +403,41 @@ void Renderer::initShaders() {
 	};
 	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &globalPool);
 
+	// create descriptor layout
+
+	Desc::SetBindLayoutCreateInfo descSetBindInfo{
+		.bindings = {
+			Desc::BindLayoutCreateInfo{.slot = 0, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
+		}
+	};
+
+	globalSetLayout = Desc::CreateDescLayout(device, descSetBindInfo);
+
+	// allocate descriptor set. this seems fine?
+
 	const VkDescriptorSetAllocateInfo allocInfo = {
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.descriptorPool = globalPool,
-			.descriptorSetCount = 1,
-			.pSetLayouts = &globalSetLayout,
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = globalPool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &globalSetLayout,
 	};
 
 	vkAllocateDescriptorSets(device, &allocInfo, &globalSet);
 
+	// create buffer & write descriptor set
+
 	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
 
-	VkDescriptorBufferInfo globalBufferInfo{
-		.buffer = ResourceManager::ptr->GetBuffer(globalBuffer.buffer).buffer,
-		.offset = 0,
-		.range = globalBuffer.size,
+	// new
+
+	Desc::SetBindWriteInfo setWriteInfo{
+		.writes = {
+			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::STORAGE, .buffer = globalBuffer}
+		}
 	};
 
-	const VkWriteDescriptorSet transformWrite = VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, globalSet, &globalBufferInfo, 0);
-
-	vkUpdateDescriptorSets(device, 1, &transformWrite, 0, nullptr);
+	Desc::WriteDescriptorSet(device, globalSet, setWriteInfo);
 
 	// fill transforms
 
