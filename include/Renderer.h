@@ -23,7 +23,13 @@ struct GPUPushConstants
 
 struct GPUTransform
 {
-	glm::mat4 modelMatrix;
+	glm::mat4 modelMatrix{};
+};
+
+struct GPUCameraData
+{
+	glm::mat4 view{};
+	glm::mat4 proj{};
 };
 
 struct RenderFrame
@@ -84,6 +90,13 @@ private:
 	VkDescriptorPool globalPool;
 	VkDescriptorSet globalSet;
 	BufferView globalBuffer;
+	GPUTransform transformData[MAX_OBJECTS];
+
+	VkDescriptorSetLayout sceneSetLayout;
+	VkDescriptorPool scenePool;
+	VkDescriptorSet sceneSet;
+	BufferView cameraBuffer;
+	GPUCameraData camera;
 
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;

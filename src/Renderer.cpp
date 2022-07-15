@@ -168,6 +168,15 @@ void Renderer::draw()
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 
+	// fill buffer
+
+	// binding 0
+		//slot 0 - transform
+	memcpy(ResourceManager::ptr->GetBuffer(globalBuffer.buffer).ptr, &transformData, globalBuffer.size);
+	// binding 1
+		//slot 0 - camera
+	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
+
 	const VkDeviceSize offset { 0 };
 	const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
 	vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
@@ -483,16 +492,24 @@ void Renderer::initShaders() {
 		.pPoolSizes = poolSizes,
 	};
 	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &globalPool);
+	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &scenePool);
 
 	// create descriptor layout
 
-	Desc::SetBindLayoutCreateInfo descSetBindInfo{
+	Desc::SetBindLayoutCreateInfo globalSetBindInfo{
 		.bindings = {
 			Desc::BindLayoutCreateInfo{.slot = 0, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
 		}
 	};
 
-	globalSetLayout = Desc::CreateDescLayout(device, descSetBindInfo);
+	Desc::SetBindLayoutCreateInfo sceneSetBindInfo{
+		.bindings = {
+			Desc::BindLayoutCreateInfo{.slot = 0, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
+		}
+	};
+
+	globalSetLayout = Desc::CreateDescLayout(device, globalSetBindInfo);
+	sceneSetLayout = Desc::CreateDescLayout(device, sceneSetBindInfo);
 
 	// allocate descriptor set. this seems fine?
 
@@ -506,9 +523,20 @@ void Renderer::initShaders() {
 
 	vkAllocateDescriptorSets(device, &allocInfo, &globalSet);
 
+	const VkDescriptorSetAllocateInfo sceneAllocInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = scenePool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &sceneSetLayout,
+	};
+
+	vkAllocateDescriptorSets(device, &sceneAllocInfo, &sceneSet);
+
 	// create buffer & write descriptor set
 
 	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
+	cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
 
 	// new
 
@@ -520,21 +548,25 @@ void Renderer::initShaders() {
 
 	Desc::WriteDescriptorSet(device, globalSet, setWriteInfo);
 
-	// fill transforms
+	Desc::SetBindWriteInfo sceneSetWriteInfo{
+		.writes = {
+			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::UNIFORM, .buffer = cameraBuffer}
+		}
+	};
 
-	GPUTransform transformData[MAX_OBJECTS]{};
+	Desc::WriteDescriptorSet(device, sceneSet, sceneSetWriteInfo);
 
-	memcpy(ResourceManager::ptr->GetBuffer(globalBuffer.buffer).ptr, &transformData, globalBuffer.size);
+	// set up push constants
 
-	VkPushConstantRange defaultPushConstants{
+	const VkPushConstantRange defaultPushConstants{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 		.offset = 0,
 		.size = sizeof(GPUPushConstants),
 	};
 
-	VkDescriptorSetLayout setLayouts[] = { globalSetLayout };
+	VkDescriptorSetLayout setLayouts[] = { globalSetLayout, sceneSetLayout };
 	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
-	defaultPipelineLayoutInfo.setLayoutCount = 1;
+	defaultPipelineLayoutInfo.setLayoutCount = 2;
 	defaultPipelineLayoutInfo.pSetLayouts = setLayouts;
 	defaultPipelineLayoutInfo.pushConstantRangeCount = 1;
 	defaultPipelineLayoutInfo.pPushConstantRanges = &defaultPushConstants;
@@ -595,6 +627,8 @@ void Renderer::deinit()
 	vkDestroyPipelineLayout(device, defaultPipelineLayout, nullptr);
 	vkDestroyPipeline(device, defaultPipeline, nullptr);
 
+	vkDestroyDescriptorPool(device, scenePool, nullptr);
+	vkDestroyDescriptorSetLayout(device, sceneSetLayout, nullptr);
 	vkDestroyDescriptorPool(device, globalPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, globalSetLayout, nullptr);
 
