@@ -20,8 +20,8 @@ void Engine::run()
 			{
 				bQuit = true;
 			}
-			rend.draw();
 		}
+		rend.draw();
 	}
 }
 

@@ -11,6 +11,9 @@
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
 
+#include <gtx/transform.hpp>
+#include <gtx/quaternion.hpp>
+
 #include <imgui.h>
 #include <backends/imgui_impl_sdl.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -63,18 +66,28 @@ void Renderer::init()
 	//
 	//
 	loadMeshes();
-	//loadImages();
+	//loadImages();#
+	// 
+	initShaderData();
 	//
 	//initScene();
 	//buildComputeCommandBuffer();
 
 }
 
+void Renderer::initShaderData()
+{
+	camera.proj = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+	camera.view =
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
 void Renderer::draw() 
 {
 	ZoneScoped;
-	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
-
+	VK_CHECK(vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000));
 
 	uint32_t swapchainImageIndex;
 	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, frame.presentSem, nullptr, &swapchainImageIndex);
@@ -88,8 +101,8 @@ void Renderer::draw()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	vkResetFences(device, 1, &frame.renderFen);
-	vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0);
+	VK_CHECK(vkResetFences(device, 1, &frame.renderFen));
+	VK_CHECK(vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0));
 
 	const VkCommandBuffer cmd = graphics.commands[getCurrentFrameNumber()].buffer;
 
@@ -167,15 +180,31 @@ void Renderer::draw()
 	vkCmdBeginRendering(cmd, &renderInfo);
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
 
-	// fill buffer
-
+	// fill buffers
 	// binding 0
 		//slot 0 - transform
+	const glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
+	const glm::vec3 rotation = { 0.0f, abs(frameNumber / 120.f), 0.0f };
+	const glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
+	const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, translation)
+			* glm::toMat4(glm::quat(rotation))
+			* glm::scale(glm::mat4{ 1.0 }, scale);
+	transformData[0].modelMatrix = modelMatrix;
 	memcpy(ResourceManager::ptr->GetBuffer(globalBuffer.buffer).ptr, &transformData, globalBuffer.size);
 	// binding 1
 		//slot 0 - camera
+	camera.view = 
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+				glm::vec3(0.0f, 0.0f, 0.0f),
+				glm::vec3(0.0f, 1.0f, 0.0f));
 	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
+
+	GPUPushConstants constants = {};
+	constants.transformIndex = 0;
+	vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
 	const VkDeviceSize offset { 0 };
 	const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
@@ -575,13 +604,14 @@ void Renderer::initShaders() {
 
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
 		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(device, fileLoc.c_str());
+		std::cout << fileLoc << std::endl;
 		assert(shader.has_value());
 		std::cout << "Triangle fragment shader successfully loaded" << std::endl;
 		return shader.value();
 	};
 
-	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../assets/shaders/default.vert.spv");
-	VkShaderModule fragShader = shaderLoadFunc((std::string)"../assets/shaders/default.frag.spv");
+	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../../assets/shaders/default.vert.spv");
+	VkShaderModule fragShader = shaderLoadFunc((std::string)"../../assets/shaders/default.frag.spv");
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
 	VertexInputDescription vertexDescription = Vertex::getVertexDescription();

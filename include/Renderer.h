@@ -23,7 +23,7 @@ struct GPUPushConstants
 
 struct GPUTransform
 {
-	glm::mat4 modelMatrix{};
+	glm::mat4 modelMatrix{1.0f};
 };
 
 struct GPUCameraData
@@ -61,6 +61,8 @@ private:
 	void initShaders();
 	void loadMeshes();
 
+	void initShaderData();
+
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 	void uploadMesh(Mesh& mesh);
 
@@ -84,7 +86,7 @@ private:
 	uint32_t currentSwapchainImage;
 
 	RenderFrame frame;
-	int frameNumber;
+	int frameNumber{};
 
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
