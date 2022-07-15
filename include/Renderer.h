@@ -11,6 +11,7 @@
 #include "ResourceManager.h"
 #include "Mesh.h"
 #include "DescriptorSet.h"
+#include "DeletionQueue.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
@@ -30,6 +31,7 @@ struct RenderFrame
 	VkSemaphore presentSem;
 	VkSemaphore	renderSem;
 	VkFence renderFen;
+	DeletionQueue frameDeletionQueue;
 };
 
 class Renderer 
@@ -44,9 +46,12 @@ public:
 private:
 	void initVulkan();
 	void createSwapchain();
+
 	void initGraphicsCommands();
 	void initComputeCommands();
 	void initSyncStructures();
+	void initImgui();
+
 	void initShaders();
 	void loadMeshes();
 
@@ -59,6 +64,7 @@ private:
 	VkPhysicalDevice chosenGPU;
 	VkPhysicalDeviceProperties gpuProperties;
 	VkDevice device;
+	DeletionQueue instanceDeletionQueue;
 
 	VkSurfaceKHR surface;
 	VmaAllocator allocator;
@@ -67,7 +73,6 @@ private:
 	RenderTypes::QueueContext<FRAME_OVERLAP> graphics;
 	RenderTypes::QueueContext<1> compute;
 	RenderTypes::UploadContext uploadContext;
-
 
 	RenderTypes::Swapchain swapchain;
 	uint32_t currentSwapchainImage;

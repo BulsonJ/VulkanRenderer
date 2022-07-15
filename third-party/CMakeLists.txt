@@ -24,3 +24,22 @@ target_include_directories(glm INTERFACE glm/glm)
 
 add_subdirectory(tracy) # target: TracyClient or alias Tracy::TracyClient
 
+add_library(imgui STATIC)
+
+target_include_directories(imgui PUBLIC imgui)
+
+target_sources(imgui PRIVATE
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.h"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_demo.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_draw.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_widgets.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_tables.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_sdl.cpp"
+)
+
+target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2)
+

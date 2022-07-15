@@ -7,11 +7,28 @@
 #include <SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
+
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
+
+#include <imgui.h>
+#include <backends/imgui_impl_sdl.h>
+#include <backends/imgui_impl_vulkan.h>
+
 #include <iostream>
 
 #include "VulkanInit.h"
+
+#define VK_CHECK(x)                                                 \
+	do                                                              \
+	{                                                               \
+		VkResult err = x;                                           \
+		if (err)                                                    \
+		{                                                           \
+			std::cout <<"Detected Vulkan error: " << err << std::endl; \
+			abort();                                                \
+		}                                                           \
+	} while (0)
 
 void Renderer::init()
 {
@@ -35,6 +52,8 @@ void Renderer::init()
 	initGraphicsCommands();
 	initComputeCommands();
 	initSyncStructures();
+
+	initImgui();
 
 	initShaders();
 
@@ -299,6 +318,68 @@ void Renderer::createSwapchain()
 	swapchain.imageFormat = vkbSwapchain.image_format;
 }
 
+void Renderer::initImgui()
+{
+	// TODO : Fix when IMGUI adds dynamic rendering support
+	//// the size of the pool is very oversize, but it's copied from imgui demo itself.
+	//const VkDescriptorPoolSize pool_sizes[] =
+	//{
+	//	{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+	//	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+	//};
+	//
+	//const VkDescriptorPoolCreateInfo pool_info = {
+	//	.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+	//	.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+	//	.maxSets = 1000,
+	//	.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes)),
+	//	.pPoolSizes = pool_sizes,
+	//};
+	//
+	//VkDescriptorPool imguiPool;
+	//VK_CHECK(vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool));
+	//
+	//ImGui::CreateContext();
+	//
+	//ImGui_ImplSDL2_InitForVulkan(window.window);
+	//
+	////this initializes imgui for Vulkan
+	//ImGui_ImplVulkan_InitInfo init_info = {
+	//	.Instance = instance,
+	//	.PhysicalDevice = chosenGPU,
+	//	.Device = device,
+	//	.Queue = graphics.queue,
+	//	.DescriptorPool = imguiPool,
+	//	.MinImageCount = 3,
+	//	.ImageCount = 3,
+	//	.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	//};
+	//
+	////ImGui_ImplVulkan_Init(&init_info, renderPass);
+	//
+	////execute a gpu command to upload imgui font textures
+	////immediateSubmit([&](VkCommandBuffer cmd) {
+	////	ImGui_ImplVulkan_CreateFontsTexture(cmd);
+	////	});
+	////
+	//////clear font textures from cpu data
+	////ImGui_ImplVulkan_DestroyFontUploadObjects();
+	//
+	////instanceDeletionQueue.push_function([=]{
+	//	vkDestroyDescriptorPool(device, imguiPool, nullptr);
+	//	ImGui_ImplVulkan_Shutdown();
+	//	});
+}
+
 void Renderer::initGraphicsCommands()
 {
 	ZoneScoped;
@@ -506,6 +587,8 @@ void Renderer::deinit()
 	ZoneScoped;
 
 	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
+
+	instanceDeletionQueue.flush();
 
 	delete ResourceManager::ptr;
 
