@@ -17,11 +17,18 @@ namespace Desc
 		STORAGE,
 	};
 
+	enum Flags
+	{
+		VARIABLE_DESCRIPTOR = 1,
+		PARTIALLY_BOUND = 2,
+	};
+
 	struct BindLayoutCreateInfo
 	{
 		int slot;
 		Stages stage;
 		Usage usage;
+		Flags flags;
 	};
 
 	struct SetBindLayoutCreateInfo

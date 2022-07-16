@@ -8,6 +8,7 @@ VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, SetBindLayoutCreat
 	VkDescriptorSetLayout setLayout;
 
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
+	std::vector<VkDescriptorBindingFlags> flags;
 	for (const auto& bind : createInfo.bindings)
 	{
 		VkDescriptorSetLayoutBinding setBind = {
@@ -36,10 +37,27 @@ VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, SetBindLayoutCreat
 		}
 
 		bindings.emplace_back(setBind);
+
+		VkDescriptorBindingFlags descriptorFlags{0};
+		if ((bind.flags && Desc::Flags::PARTIALLY_BOUND) != 0)
+		{
+			descriptorFlags = descriptorFlags | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+		}
+		if ((bind.flags && Desc::Flags::VARIABLE_DESCRIPTOR) != 0)
+		{
+			descriptorFlags = descriptorFlags | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+		}
+		flags.push_back(descriptorFlags);
 	}
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+	bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	bindingFlags.bindingCount = static_cast<uint32_t>(flags.size());
+	bindingFlags.pBindingFlags = flags.data();
 
 	VkDescriptorSetLayoutCreateInfo descSetCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.pNext = &bindingFlags,
 		.bindingCount = static_cast<uint32_t>(bindings.size()),
 		.pBindings = bindings.data(),
 	};

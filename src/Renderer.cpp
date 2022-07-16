@@ -77,6 +77,7 @@ void Renderer::init()
 
 void Renderer::initShaderData()
 {
+	ZoneScoped;
 	camera.proj = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 	camera.view =
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
@@ -86,6 +87,7 @@ void Renderer::initShaderData()
 
 void Renderer::drawObjects(VkCommandBuffer cmd)
 {	
+	ZoneScoped;
 	const int objectCount = 1;
 
 	// fill buffers
@@ -334,8 +336,17 @@ void Renderer::initVulkan() {
 		.dynamicRendering = VK_TRUE,
 	};
 
+	VkPhysicalDeviceDescriptorIndexingFeatures descIndexFeatures{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+		.pNext = &dynamicRenderingFeature,
+		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+		.descriptorBindingPartiallyBound = VK_TRUE,
+		.descriptorBindingVariableDescriptorCount = VK_TRUE,
+		.runtimeDescriptorArray = VK_TRUE,
+	};
+
 	const vkb::Device vkbDevice = deviceBuilder
-		.add_pNext(&dynamicRenderingFeature)
+		.add_pNext(&descIndexFeatures)
 		.build()
 		.value();
 
@@ -495,7 +506,6 @@ void Renderer::initComputeCommands(){
 	};
 
 	vkAllocateCommandBuffers(device, &bufferAllocInfo, &compute.commands[0].buffer);
-
 }
 
 void Renderer::initSyncStructures()
@@ -661,6 +671,7 @@ void Renderer::initShaders() {
 
 void Renderer::loadMeshes()
 {
+	ZoneScoped;
 	uploadMesh(triangleMesh);
 }
 
@@ -710,6 +721,7 @@ void Renderer::deinit()
 
 void Renderer::uploadMesh(Mesh& mesh)
 {
+	ZoneScoped;
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
 
