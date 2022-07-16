@@ -84,6 +84,64 @@ void Renderer::initShaderData()
 			glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
+void Renderer::drawObjects(VkCommandBuffer cmd)
+{	
+	const int objectCount = 1;
+
+	// fill buffers
+	// binding 0
+		//slot 0 - transform
+	const glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
+	const glm::vec3 rotation = { 0.0f, abs(frameNumber / 120.f), 0.0f };
+	const glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
+	const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, translation)
+		* glm::toMat4(glm::quat(rotation))
+		* glm::scale(glm::mat4{ 1.0 }, scale);
+	transformData[0].modelMatrix = modelMatrix;
+	memcpy(ResourceManager::ptr->GetBuffer(transformBuffer.buffer).ptr, &transformData, transformBuffer.size);
+	// binding 1
+		//slot 0 - camera
+	camera.view =
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f));
+	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
+
+	const Mesh* lastMesh = nullptr;
+	for (int i = 0; i < objectCount; ++i)
+	{
+		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
+
+		GPUPushConstants constants = {};
+		constants.transformIndex = 0;
+		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
+
+		const Mesh* currentMesh = &triangleMesh;
+		if (currentMesh != lastMesh)
+		{
+			const VkDeviceSize offset{ 0 };
+			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer.buffer).buffer;
+			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
+			if (triangleMesh.hasIndices())
+			{
+				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer.buffer).buffer;
+				vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			}
+		}
+
+		if (currentMesh->hasIndices())
+		{
+			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(currentMesh->indices.size()), 1, 0, 0, 0);
+		}
+		else
+		{
+			vkCmdDraw(cmd, static_cast<uint32_t>(currentMesh->vertices.size()), 1, 0, 0);
+		}
+	}
+}
+
 void Renderer::draw() 
 {
 	ZoneScoped;
@@ -179,45 +237,7 @@ void Renderer::draw()
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
-
-	// fill buffers
-	// binding 0
-		//slot 0 - transform
-	const glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
-	const glm::vec3 rotation = { 0.0f, abs(frameNumber / 120.f), 0.0f };
-	const glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
-	const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, translation)
-			* glm::toMat4(glm::quat(rotation))
-			* glm::scale(glm::mat4{ 1.0 }, scale);
-	transformData[0].modelMatrix = modelMatrix;
-	memcpy(ResourceManager::ptr->GetBuffer(globalBuffer.buffer).ptr, &transformData, globalBuffer.size);
-	// binding 1
-		//slot 0 - camera
-	camera.view = 
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-				glm::vec3(0.0f, 0.0f, 0.0f),
-				glm::vec3(0.0f, 1.0f, 0.0f));
-	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
-
-	GPUPushConstants constants = {};
-	constants.transformIndex = 0;
-	vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
-
-	const VkDeviceSize offset { 0 };
-	const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.vertexBuffer.buffer).buffer;
-	vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
-	if (triangleMesh.hasIndices()) {
-		const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(triangleMesh.indexBuffer.buffer).buffer;
-		vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmd, static_cast<uint32_t>(triangleMesh.indices.size()), 1, 0, 0, 0);
-	}
-	else
-	{
-		vkCmdDraw(cmd, static_cast<uint32_t>(triangleMesh.vertices.size()), 1, 0, 0);
-	}
+	drawObjects(cmd);
 
 	vkCmdEndRendering(cmd);
 
@@ -564,14 +584,14 @@ void Renderer::initShaders() {
 
 	// create buffer & write descriptor set
 
-	globalBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
+	transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
 	cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
 
 	// new
 
 	Desc::SetBindWriteInfo setWriteInfo{
 		.writes = {
-			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::STORAGE, .buffer = globalBuffer}
+			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::STORAGE, .buffer = transformBuffer}
 		}
 	};
 

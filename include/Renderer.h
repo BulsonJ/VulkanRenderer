@@ -63,6 +63,8 @@ private:
 
 	void initShaderData();
 
+	void drawObjects(VkCommandBuffer cmd);
+
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 	void uploadMesh(Mesh& mesh);
 
@@ -91,7 +93,7 @@ private:
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
 	VkDescriptorSet globalSet;
-	BufferView globalBuffer;
+	BufferView transformBuffer;
 	GPUTransform transformData[MAX_OBJECTS];
 
 	VkDescriptorSetLayout sceneSetLayout;
