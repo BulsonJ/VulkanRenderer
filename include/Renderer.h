@@ -51,13 +51,15 @@ public:
 
 private:
 	void initVulkan();
+	void initImguiRenderpass();
 	void createSwapchain();
 
 	void initGraphicsCommands();
 	void initComputeCommands();
 	void initSyncStructures();
-	void initImgui();
 
+
+	void initImgui();
 	void initShaders();
 	void loadMeshes();
 
@@ -86,6 +88,8 @@ private:
 
 	RenderTypes::Swapchain swapchain;
 	uint32_t currentSwapchainImage;
+
+	VkRenderPass imguiPass;
 
 	RenderFrame frame;
 	int frameNumber{};

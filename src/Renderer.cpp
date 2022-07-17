@@ -51,11 +51,15 @@ void Renderer::init()
 	);
 
 	initVulkan();
+
 	createSwapchain();
 	initGraphicsCommands();
 	initComputeCommands();
 	initSyncStructures();
 
+
+
+	initImguiRenderpass();
 	initImgui();
 
 	initShaders();
@@ -147,6 +151,15 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 void Renderer::draw() 
 {
 	ZoneScoped;
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame(window.window);
+	ImGui::NewFrame();
+
+	ImGui::ShowDemoWindow();
+
+	ImGui::Render();
+
 	VK_CHECK(vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000));
 
 	uint32_t swapchainImageIndex;
@@ -271,6 +284,18 @@ void Renderer::draw()
 		&imgMemBarrier
 	);
 
+	const VkClearValue clearValue{
+		.color = { 0.1f, 0.1f, 0.1f, 1.0f }
+	};
+	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(imguiPass, window.extent, swapchain.framebuffers[swapchainImageIndex]);
+	const VkClearValue clearValues[] = { clearValue };
+	rpInfo.clearValueCount = 1;
+	rpInfo.pClearValues = &clearValues[0];
+
+	vkCmdBeginRenderPass(cmd, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+	vkCmdEndRenderPass(cmd);
+
 	vkEndCommandBuffer(cmd);
 
 	const VkPipelineStageFlags waitStage { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -387,66 +412,141 @@ void Renderer::createSwapchain()
 	swapchain.imageFormat = vkbSwapchain.image_format;
 }
 
+void Renderer::initImguiRenderpass() 
+{
+	const VkAttachmentDescription color_attachment = {
+		.format = swapchain.imageFormat,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+	};
+
+	const VkAttachmentReference color_attachment_ref = {
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	};
+
+	const VkSubpassDescription subpass = {
+		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &color_attachment_ref,
+	};
+
+	VkRenderPassCreateInfo renderPassInfo = {
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		.attachmentCount = 1,
+		.pAttachments = &color_attachment,
+		.subpassCount = 1,
+		.pSubpasses = &subpass,
+	};
+
+	const VkSubpassDependency dependency = {
+		.srcSubpass = VK_SUBPASS_EXTERNAL,
+		.dstSubpass = 0,
+		.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = 0,
+		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+	};
+
+	const VkSubpassDependency dependencies[2] = { dependency };
+
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependencies[0];
+
+	VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &imguiPass));
+
+	//create the framebuffers for the swapchain images. This will connect the render-pass to the images for rendering
+	VkFramebufferCreateInfo fb_info = {
+		.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+		.pNext = nullptr,
+		.renderPass = imguiPass,
+		.attachmentCount = 1,
+		.width = window.extent.width,
+		.height = window.extent.height,
+		.layers = 1,
+	};
+
+	const int swapchain_imagecount = static_cast<int>(swapchain.images.size());
+	swapchain.framebuffers = std::vector<VkFramebuffer>(swapchain_imagecount);
+
+	//create framebuffers for each of the swapchain image views
+	for (int i = 0; i < swapchain_imagecount; i++)
+	{
+
+		VkImageView attachment = swapchain.imageViews[i];
+
+		fb_info.pAttachments = &attachment;
+		fb_info.attachmentCount = 1;
+
+		VK_CHECK(vkCreateFramebuffer(device, &fb_info, nullptr, &swapchain.framebuffers[i]));
+	}
+}
+
 void Renderer::initImgui()
 {
 	// TODO : Fix when IMGUI adds dynamic rendering support
-	//// the size of the pool is very oversize, but it's copied from imgui demo itself.
-	//const VkDescriptorPoolSize pool_sizes[] =
-	//{
-	//	{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-	//	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-	//};
+	// the size of the pool is very oversize, but it's copied from imgui demo itself.
+	const VkDescriptorPoolSize pool_sizes[] =
+	{
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+	};
+	
+	const VkDescriptorPoolCreateInfo pool_info = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+		.maxSets = 1000,
+		.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes)),
+		.pPoolSizes = pool_sizes,
+	};
+	
+	VkDescriptorPool imguiPool;
+	VK_CHECK(vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool));
+	
+	ImGui::CreateContext();
+	
+	ImGui_ImplSDL2_InitForVulkan(window.window);
+	
+	//this initializes imgui for Vulkan
+	ImGui_ImplVulkan_InitInfo init_info = {
+		.Instance = instance,
+		.PhysicalDevice = chosenGPU,
+		.Device = device,
+		.Queue = graphics.queue,
+		.DescriptorPool = imguiPool,
+		.MinImageCount = 3,
+		.ImageCount = 3,
+		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	};
+	
+	ImGui_ImplVulkan_Init(&init_info, imguiPass);
+	
+	//execute a gpu command to upload imgui font textures
+	immediateSubmit([&](VkCommandBuffer cmd) {
+		ImGui_ImplVulkan_CreateFontsTexture(cmd);
+		});
 	//
-	//const VkDescriptorPoolCreateInfo pool_info = {
-	//	.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-	//	.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-	//	.maxSets = 1000,
-	//	.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes)),
-	//	.pPoolSizes = pool_sizes,
-	//};
-	//
-	//VkDescriptorPool imguiPool;
-	//VK_CHECK(vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool));
-	//
-	//ImGui::CreateContext();
-	//
-	//ImGui_ImplSDL2_InitForVulkan(window.window);
-	//
-	////this initializes imgui for Vulkan
-	//ImGui_ImplVulkan_InitInfo init_info = {
-	//	.Instance = instance,
-	//	.PhysicalDevice = chosenGPU,
-	//	.Device = device,
-	//	.Queue = graphics.queue,
-	//	.DescriptorPool = imguiPool,
-	//	.MinImageCount = 3,
-	//	.ImageCount = 3,
-	//	.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
-	//};
-	//
-	////ImGui_ImplVulkan_Init(&init_info, renderPass);
-	//
-	////execute a gpu command to upload imgui font textures
-	////immediateSubmit([&](VkCommandBuffer cmd) {
-	////	ImGui_ImplVulkan_CreateFontsTexture(cmd);
-	////	});
-	////
-	//////clear font textures from cpu data
-	////ImGui_ImplVulkan_DestroyFontUploadObjects();
-	//
-	////instanceDeletionQueue.push_function([=]{
-	//	vkDestroyDescriptorPool(device, imguiPool, nullptr);
-	//	ImGui_ImplVulkan_Shutdown();
-	//	});
+	////clear font textures from cpu data
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
+	
+	instanceDeletionQueue.push_function([=]{
+		vkDestroyDescriptorPool(device, imguiPool, nullptr);
+		ImGui_ImplVulkan_Shutdown();
+		});
 }
 
 void Renderer::initGraphicsCommands()
@@ -702,8 +802,11 @@ void Renderer::deinit()
 
 	for (int i = 0; i < swapchain.imageViews.size(); i++)
 	{
+		vkDestroyFramebuffer(device, swapchain.framebuffers[i], nullptr);
 		vkDestroyImageView(device, swapchain.imageViews[i], nullptr);
 	}
+	vkDestroyRenderPass(device, imguiPass, nullptr);
+
 	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
 
 	vkDestroyCommandPool(device, graphics.commands[0].pool, nullptr);

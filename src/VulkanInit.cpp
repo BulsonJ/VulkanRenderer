@@ -288,3 +288,23 @@ VkSamplerCreateInfo VulkanInit::samplerCreateInfo(VkFilter filters, VkSamplerAdd
 
 	return info;
 }
+
+VkRenderPassBeginInfo VulkanInit::renderpassBeginInfo(VkRenderPass renderPass, VkExtent2D windowExtent, VkFramebuffer framebuffer)
+{
+	VkRenderPassBeginInfo info = {
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		.pNext = nullptr,
+
+		.renderPass = renderPass,
+		.framebuffer = framebuffer,
+		.clearValueCount = 1,
+		.pClearValues = nullptr,
+
+	};
+
+	info.renderArea.offset.x = 0;
+	info.renderArea.offset.y = 0;
+	info.renderArea.extent = windowExtent;
+
+	return info;
+}

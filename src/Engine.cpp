@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include <SDL.h>
 #include <Tracy.hpp>
+#include <backends/imgui_impl_sdl.h>
 
 void Engine::init() {
 	ZoneScoped;
@@ -16,6 +17,7 @@ void Engine::run()
 	{
 		while (SDL_PollEvent(&e) != 0)
 		{
+			ImGui_ImplSDL2_ProcessEvent(&e);
 			if (e.type == SDL_QUIT)
 			{
 				bQuit = true;
