@@ -16,6 +16,8 @@
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 
+struct CPUImage;
+
 struct GPUPushConstants
 {
 	int transformIndex;
@@ -48,8 +50,6 @@ public:
 	void draw();
 
 	RenderTypes::WindowContext window;
-
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 private:
 	void initVulkan();
 	void initImguiRenderpass();
@@ -70,6 +70,9 @@ private:
 	void drawObjects(VkCommandBuffer cmd);
 
 	void uploadMesh(Mesh& mesh);
+	Handle<Image> uploadImage(CPUImage& image);
+
+	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
 

@@ -2,12 +2,20 @@
 
 #include "ResourceManager.h"
 
-class Renderer;
+struct CPUImage
+{
+	~CPUImage();
+
+	void* ptr;
+	int texWidth;
+	int texHeight;
+	int texChannels;
+};
 
 namespace VulkanUtil
 {
 
-	Handle<Image> LoadImageFromFile(Renderer* rend, const char* file);
+	void LoadImageFromFile(const char* file, CPUImage& outImage);
 
 }
 

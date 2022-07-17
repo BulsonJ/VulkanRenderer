@@ -765,7 +765,6 @@ void Renderer::initShaders() {
 	vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
-
 void Renderer::loadMeshes()
 {
 	ZoneScoped;
@@ -774,7 +773,9 @@ void Renderer::loadMeshes()
 
 void Renderer::loadImages()
 {
-	defaultTexture = VulkanUtil::LoadImageFromFile(this, "../../assets/textures/checkerboard.png");
+	CPUImage test;
+	VulkanUtil::LoadImageFromFile("../../assets/textures/checkerboard.png", test);
+	defaultTexture = uploadImage(test);
 	return;
 }
 
@@ -891,6 +892,80 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
 	}
+}
+
+Handle<Image> Renderer::uploadImage(CPUImage& image)
+{
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
+	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
+
+	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = imageSize,
+			.usage = BufferCreateInfo::Usage::NONE,
+			.transfer = BufferCreateInfo::Transfer::SRC,
+		});
+
+	//copy data to buffer
+
+	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, image.ptr, static_cast<size_t>(imageSize));
+
+	const VkExtent3D imageExtent{
+		.width = static_cast<uint32_t>(image.texWidth),
+		.height = static_cast<uint32_t>(image.texHeight),
+		.depth = 1,
+	};
+
+	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
+
+	Handle<Image> newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
+
+	immediateSubmit([&](VkCommandBuffer cmd) {
+		const VkImageSubresourceRange range{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		};
+
+		const VkImageMemoryBarrier imageBarrier_toTransfer = {
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.subresourceRange = range,
+		};
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toTransfer);
+
+		const VkBufferImageCopy copyRegion = {
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.mipLevel = 0,
+				.baseArrayLayer = 0,
+				.layerCount = 1},
+			.imageExtent = imageExtent,
+		};
+
+		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+		VkImageMemoryBarrier imageBarrier_toReadable = imageBarrier_toTransfer;
+
+		imageBarrier_toReadable.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		imageBarrier_toReadable.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageBarrier_toReadable.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imageBarrier_toReadable.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toReadable);
+		});
+
+	ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+
+	return newImage;
 }
 
 

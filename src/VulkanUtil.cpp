@@ -6,98 +6,23 @@
 #include <stb_image.h>
 
 #include "VulkanInit.h"
-#include "Renderer.h"
 
-Handle<Image> VulkanUtil::LoadImageFromFile(Renderer* rend, const char* file)
+CPUImage::~CPUImage()
 {
-	int texWidth, texHeight, texChannels;
+	stbi_image_free(this->ptr);
+}
 
-	stbi_uc* pixels = stbi_load(file, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+void VulkanUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
+{
+	stbi_uc* pixels = stbi_load(file, &outImage.texWidth, &outImage.texHeight, &outImage.texChannels, STBI_rgb_alpha);
 
 	if (!pixels)
 	{
 		std::cout << "Failed to load texture file " << file << std::endl;
-		return Handle<Image>();
+		return;
 	}
 
-	void* pixel_ptr = pixels;
-	VkDeviceSize imageSize = texWidth * texHeight * 4;
+	outImage.ptr = pixels;
 
-	VkFormat image_format = VK_FORMAT_R8G8B8A8_SRGB;
-
-	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
-			.size = imageSize,
-			.usage = BufferCreateInfo::Usage::NONE,
-			.transfer = BufferCreateInfo::Transfer::SRC,
-		});
-
-	//copy data to buffer
-
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, pixel_ptr, static_cast<size_t>(imageSize));
-
-	stbi_image_free(pixels);
-
-	VkExtent3D imageExtent;
-	imageExtent.width = static_cast<uint32_t>(texWidth);
-	imageExtent.height = static_cast<uint32_t>(texHeight);
-	imageExtent.depth = 1;
-
-	VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
-
-	Handle<Image> newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
-
-	rend->immediateSubmit([&](VkCommandBuffer cmd) {
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = 0;
-		range.levelCount = 1;
-		range.baseArrayLayer = 0;
-		range.layerCount = 1;
-
-		VkImageMemoryBarrier imageBarrier_toTransfer = {};
-		imageBarrier_toTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-
-		imageBarrier_toTransfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageBarrier_toTransfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageBarrier_toTransfer.image = ResourceManager::ptr->GetImage(newImage).image;
-		imageBarrier_toTransfer.subresourceRange = range;
-
-		imageBarrier_toTransfer.srcAccessMask = 0;
-		imageBarrier_toTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		//barrier the image into the transfer-receive layout
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toTransfer);
-
-		VkBufferImageCopy copyRegion = {
-			.bufferOffset = 0,
-			.bufferRowLength = 0,
-			.bufferImageHeight = 0,
-			.imageExtent = imageExtent,
-		};
-
-		copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		copyRegion.imageSubresource.mipLevel = 0;
-		copyRegion.imageSubresource.baseArrayLayer = 0;
-		copyRegion.imageSubresource.layerCount = 1;
-
-		//copy the buffer into the image
-		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-
-		VkImageMemoryBarrier imageBarrier_toReadable = imageBarrier_toTransfer;
-
-		imageBarrier_toReadable.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageBarrier_toReadable.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		imageBarrier_toReadable.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		imageBarrier_toReadable.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		//barrier the image into the shader readable layout
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toReadable);
-		});
-
-	ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
-
-	std::cout << "Texture loaded successfully " << file << std::endl;
-
-	return newImage;
+	return;
 }
