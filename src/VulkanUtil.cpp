@@ -6,6 +6,7 @@
 #include <stb_image.h>
 
 #include "VulkanInit.h"
+#include <Tracy.hpp>
 
 CPUImage::~CPUImage()
 {
@@ -14,6 +15,8 @@ CPUImage::~CPUImage()
 
 void VulkanUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
 {
+	ZoneScoped;
+
 	stbi_uc* pixels = stbi_load(file, &outImage.texWidth, &outImage.texHeight, &outImage.texChannels, STBI_rgb_alpha);
 
 	if (!pixels)
