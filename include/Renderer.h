@@ -49,6 +49,7 @@ public:
 
 	RenderTypes::WindowContext window;
 
+	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 private:
 	void initVulkan();
 	void initImguiRenderpass();
@@ -62,12 +63,12 @@ private:
 	void initImgui();
 	void initShaders();
 	void loadMeshes();
+	void loadImages();
 
 	void initShaderData();
 
 	void drawObjects(VkCommandBuffer cmd);
 
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 	void uploadMesh(Mesh& mesh);
 
 	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
@@ -110,4 +111,5 @@ private:
 	VkPipeline defaultPipeline;
 
 	Mesh triangleMesh{ Mesh::GenerateTriangle()};
+	Handle<Image> defaultTexture;
 };

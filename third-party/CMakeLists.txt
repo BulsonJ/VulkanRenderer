@@ -43,3 +43,6 @@ target_sources(imgui PRIVATE
 
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2)
 
+add_library(stb_image INTERFACE)
+
+target_include_directories(stb_image INTERFACE stb_image)

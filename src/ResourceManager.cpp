@@ -1,4 +1,5 @@
 #include "ResourceManager.h"
+#include "VulkanInit.h"
 
 ResourceManager* ResourceManager::ptr = nullptr;
 
@@ -12,9 +13,16 @@ ResourceManager::~ResourceManager()
 			vmaDestroyBuffer(allocator, buffer.buffer, buffer.allocation);
 		}
 	}
+
+	for (const auto& image : images)
+	{
+		if (image.image != VK_NULL_HANDLE)
+		{
+			vkDestroyImageView(device, image.imageView, nullptr);
+			vmaDestroyImage(allocator, image.image, image.allocation);
+		}
+	}
 }
-
-
 
 Buffer ResourceManager::GetBuffer(const Handle<Buffer>& buffer)
 {
@@ -30,6 +38,8 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	switch (createInfo.usage)
 	{
 	default:
+		break;
+	case BufferCreateInfo::Usage::NONE:
 		break;
 	case BufferCreateInfo::Usage::UNIFORM:
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -50,7 +60,6 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	default:
 		break;
 	case BufferCreateInfo::Transfer::NONE:
-		bufferInfo.usage = bufferInfo.usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		break;
 	case BufferCreateInfo::Transfer::SRC:
 		bufferInfo.usage = bufferInfo.usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -96,6 +105,47 @@ void ResourceManager::DestroyBuffer(const Handle<Buffer>& buffer)
 		vmaDestroyBuffer(allocator, deleteBuffer.buffer, deleteBuffer.allocation);
 	}
 	deleteBuffer.buffer = VK_NULL_HANDLE;
+}
+
+Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
+{
+	Image newImage;
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+	vmaCreateImage(allocator, &createInfo.imageInfo, &allocInfo, &newImage.image, &newImage.allocation, nullptr);
+
+	VkImageViewCreateInfo imageinfo = {};
+	switch (createInfo.imageType)
+	{
+	case ImageCreateInfo::ImageType::TEXTURE_2D:
+		imageinfo = VulkanInit::imageViewCreateInfo(VK_FORMAT_R8G8B8A8_SRGB, newImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+		break;
+	default:
+		break;
+	}
+	vkCreateImageView(device, &imageinfo, nullptr, &newImage.imageView);
+
+	Handle<Image> newHandle = getNewImageHandle();
+	images[newHandle.slot] = newImage;
+
+	return newHandle;
+}
+
+Image ResourceManager::GetImage(const Handle<Image>& image)
+{
+	return images[image.slot];
+}
+
+void ResourceManager::DestroyImage(const Handle<Image>& image)
+{
+	Image& deleteImage = images[image.slot];
+	if (deleteImage.image != VK_NULL_HANDLE)
+	{
+		vmaDestroyImage(allocator, deleteImage.image, deleteImage.allocation);
+	}
+	deleteImage.image = VK_NULL_HANDLE;
 }
 
 

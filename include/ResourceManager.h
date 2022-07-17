@@ -12,11 +12,12 @@ struct BufferCreateInfo
 
 	enum class Usage 
 	{
+		NONE,
 		UNIFORM,
 		STORAGE,
 		VERTEX,
-		INDEX
-	} usage;
+		INDEX,
+	} usage {Usage::NONE};
 
 	enum class Transfer
 	{
@@ -24,6 +25,15 @@ struct BufferCreateInfo
 		SRC,
 		DST
 	} transfer {Transfer::NONE};
+};
+
+struct ImageCreateInfo
+{
+	VkImageCreateInfo imageInfo;
+	enum class ImageType
+	{
+		TEXTURE_2D
+	} imageType;
 };
 
 template <typename T>
@@ -44,6 +54,13 @@ struct BufferView
 	std::size_t size;
 };
 
+struct Image
+{
+	VkImage image;
+	VmaAllocation allocation;
+	VkImageView imageView;
+};
+
 class ResourceManager
 {
 public:
@@ -54,6 +71,10 @@ public:
 	BufferView CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const Handle<Buffer>& buffer);
 	void DestroyBuffer(const Handle<Buffer>& buffer);
+
+	Handle<Image> CreateImage(const ImageCreateInfo& createInfo);
+	Image GetImage(const Handle<Image>& image);
+	void DestroyImage(const Handle<Image>& image);
 protected:
 	const VkDevice device;
 	const VmaAllocator allocator;
@@ -66,6 +87,13 @@ protected:
 		return Handle<Buffer>{++lastHandle};
 	}
 
+	std::array<Image, 1024> images{ VK_NULL_HANDLE };
+
+	uint32_t lastImageHandle{ 0 };
+	[[nodiscard]] Handle<Image> getNewImageHandle()
+	{
+		return Handle<Image>{++lastImageHandle};
+	}
 
 };
 

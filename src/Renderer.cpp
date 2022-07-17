@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include "VulkanInit.h"
+#include "VulkanUtil.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -64,18 +65,10 @@ void Renderer::init()
 
 	initShaders();
 
-
-
-	//initImgui();
-	//
-	//
 	loadMeshes();
-	//loadImages();#
-	// 
+	loadImages();
+
 	initShaderData();
-	//
-	//initScene();
-	//buildComputeCommandBuffer();
 
 }
 
@@ -537,6 +530,7 @@ void Renderer::initImgui()
 	
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontFromFileTTF("../../assets/fonts/Roboto-Medium.ttf", 13);
+	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	//execute a gpu command to upload imgui font textures
 	immediateSubmit([&](VkCommandBuffer cmd) {
@@ -778,6 +772,12 @@ void Renderer::loadMeshes()
 	uploadMesh(triangleMesh);
 }
 
+void Renderer::loadImages()
+{
+	defaultTexture = VulkanUtil::LoadImageFromFile(this, "../../assets/textures/checkerboard.png");
+	return;
+}
+
 void Renderer::deinit() 
 {
 	ZoneScoped;
@@ -833,7 +833,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
-			.usage = BufferCreateInfo::Usage::VERTEX,
+			.usage = BufferCreateInfo::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 

@@ -15,7 +15,7 @@ add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES})
 target_include_directories(VulkanRenderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(third-party)
-target_link_libraries(VulkanRenderer vk-bootstrap vma glm imgui)
+target_link_libraries(VulkanRenderer vk-bootstrap vma glm imgui stb_image)
 target_link_libraries(VulkanRenderer Vulkan::Vulkan SDL2 Tracy::TracyClient)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
