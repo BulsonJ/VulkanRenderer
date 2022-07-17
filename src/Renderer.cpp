@@ -535,6 +535,9 @@ void Renderer::initImgui()
 	
 	ImGui_ImplVulkan_Init(&init_info, imguiPass);
 	
+	ImGuiIO& io = ImGui::GetIO();
+	io.Fonts->AddFontFromFileTTF("../../assets/fonts/Roboto-Medium.ttf", 13);
+
 	//execute a gpu command to upload imgui font textures
 	immediateSubmit([&](VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
