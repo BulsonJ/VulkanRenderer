@@ -1,6 +1,6 @@
 #include "Engine.h"
 #include <SDL.h>
-#include <Tracy.hpp>
+#include <public/tracy/Tracy.hpp>
 #include <backends/imgui_impl_sdl.h>
 
 void Engine::init() {

@@ -8,8 +8,8 @@
 #include <vulkan/vulkan.h>
 #include <VkBootstrap.h>
 
-#include <Tracy.hpp>
-#include <common/TracySystem.hpp>
+#include <public/tracy/Tracy.hpp>
+#include <public/common/TracySystem.hpp>
 
 #include <gtx/transform.hpp>
 #include <gtx/quaternion.hpp>
@@ -530,7 +530,7 @@ void Renderer::initImgui()
 	
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontFromFileTTF("../../assets/fonts/Roboto-Medium.ttf", 13);
-	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	//execute a gpu command to upload imgui font textures
 	immediateSubmit([&](VkCommandBuffer cmd) {

@@ -6,7 +6,7 @@
 #include <stb_image.h>
 
 #include "VulkanInit.h"
-#include <Tracy.hpp>
+#include <public/tracy/Tracy.hpp>
 
 CPUImage::~CPUImage()
 {

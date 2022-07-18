@@ -1,5 +1,5 @@
-#include <Tracy.hpp>
-#include <common/TracySystem.hpp>
+#include <public/tracy/Tracy.hpp>
+#include <public/common/TracySystem.hpp>
 
 #include "Engine.h"
 
