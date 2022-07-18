@@ -22,6 +22,7 @@
 
 #include "VulkanInit.h"
 #include "VulkanUtil.h"
+#include "Editor.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -149,7 +150,7 @@ void Renderer::draw()
 	ImGui_ImplSDL2_NewFrame(window.window);
 	ImGui::NewFrame();
 
-	ImGui::ShowDemoWindow();
+	Editor::DrawEditor();
 
 	ImGui::Render();
 
@@ -415,7 +416,7 @@ void Renderer::initImguiRenderpass()
 		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 	};
 
 	const VkAttachmentReference color_attachment_ref = {
@@ -544,6 +545,32 @@ void Renderer::initImgui()
 		vkDestroyDescriptorPool(device, imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		});
+
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(window.extent.height * window.extent.width * 4) };
+	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
+
+	const VkExtent3D imageExtent{
+		.width = static_cast<uint32_t>(window.extent.width),
+		.height = static_cast<uint32_t>(window.extent.height),
+		.depth = 1,
+	};
+
+	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
+
+	renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+		.imageInfo = imageInfo,
+		.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+	});
+
+	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
+
+	VkSampler imageSampler;
+	vkCreateSampler(device, &samplerInfo, nullptr, &imageSampler);
+	instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(device, imageSampler, nullptr);
+		});
+
+	Editor::ViewportTexture = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(renderImage).imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
 }
 
 void Renderer::initGraphicsCommands()

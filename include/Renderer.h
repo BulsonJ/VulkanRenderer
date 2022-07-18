@@ -94,6 +94,8 @@ private:
 	uint32_t currentSwapchainImage;
 
 	VkRenderPass imguiPass;
+	Handle<Image> renderImage;
+	VkDescriptorSet imguiSet;
 
 	RenderFrame frame;
 	int frameNumber{};
