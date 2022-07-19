@@ -677,17 +677,22 @@ void Renderer::initShaders() {
 	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &globalPool);
 	vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &scenePool);
 
+	// create buffers
+
+	transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
+	cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
+
 	// create descriptor layout
 
-	Desc::SetBindLayoutCreateInfo globalSetBindInfo{
+	Desc::BindSetLayoutInfo globalSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutCreateInfo{.slot = 0, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = transformBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
 		}
 	};
 
-	Desc::SetBindLayoutCreateInfo sceneSetBindInfo{
+	Desc::BindSetLayoutInfo sceneSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutCreateInfo{.slot = 0, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = cameraBuffer,.stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
 		}
 	};
 
@@ -716,28 +721,10 @@ void Renderer::initShaders() {
 
 	vkAllocateDescriptorSets(device, &sceneAllocInfo, &sceneSet);
 
-	// create buffer & write descriptor set
-
-	transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
-	cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
-
 	// new
 
-	Desc::SetBindWriteInfo setWriteInfo{
-		.writes = {
-			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::STORAGE, .buffer = transformBuffer}
-		}
-	};
-
-	Desc::WriteDescriptorSet(device, globalSet, setWriteInfo);
-
-	Desc::SetBindWriteInfo sceneSetWriteInfo{
-		.writes = {
-			Desc::BindWriteInfo{.slot = 0,.usage = Desc::Usage::UNIFORM, .buffer = cameraBuffer}
-		}
-	};
-
-	Desc::WriteDescriptorSet(device, sceneSet, sceneSetWriteInfo);
+	Desc::WriteDescriptorSet(device, globalSet, globalSetBindInfo);
+	Desc::WriteDescriptorSet(device, sceneSet, sceneSetBindInfo);
 
 	// set up push constants
 

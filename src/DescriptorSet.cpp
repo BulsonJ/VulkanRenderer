@@ -3,7 +3,7 @@
 
 #include "VulkanInit.h"
 
-VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, SetBindLayoutCreateInfo& createInfo)
+VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, BindSetLayoutInfo& createInfo)
 {
 	VkDescriptorSetLayout setLayout;
 
@@ -67,10 +67,10 @@ VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, SetBindLayoutCreat
 	return setLayout;
 }
 
-void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, SetBindWriteInfo& writeInfo)
+void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, BindSetLayoutInfo& writeInfo)
 {
 	std::vector<VkWriteDescriptorSet> writes;
-	for (const auto& write : writeInfo.writes)
+	for (const auto& write : writeInfo.bindings)
 	{
 		VkDescriptorBufferInfo bufferInfo{
 			.buffer = ResourceManager::ptr->GetBuffer(write.buffer.buffer).buffer,

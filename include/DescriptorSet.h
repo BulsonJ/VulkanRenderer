@@ -23,33 +23,21 @@ namespace Desc
 		PARTIALLY_BOUND = 2,
 	};
 
-	struct BindLayoutCreateInfo
+	struct BindLayoutInfo
 	{
 		int slot;
+		BufferView buffer;
 		Stages stage;
 		Usage usage;
 		Flags flags;
 	};
 
-	struct SetBindLayoutCreateInfo
+	struct BindSetLayoutInfo
 	{
-		std::vector<BindLayoutCreateInfo> bindings;
+		std::vector<BindLayoutInfo> bindings;
 	};
 
-	VkDescriptorSetLayout CreateDescLayout(VkDevice device, SetBindLayoutCreateInfo& createInfo);
-	
-	struct BindWriteInfo
-	{
-		int slot;
-		Usage usage;
-		BufferView buffer;
-	};
-
-	struct SetBindWriteInfo
-	{
-		std::vector<BindWriteInfo> writes;
-	};
-
-	void WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, SetBindWriteInfo& writeInfo);
+	VkDescriptorSetLayout CreateDescLayout(VkDevice device, BindSetLayoutInfo& createInfo);
+	void WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, BindSetLayoutInfo& writeInfo);
 };
 
