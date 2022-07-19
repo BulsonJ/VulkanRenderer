@@ -22,8 +22,7 @@ void Editor::DrawEditor()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Editor", nullptr, window_flags);
-	ImGui::PopStyleVar();
-	ImGui::PopStyleVar(2);
+	ImGui::PopStyleVar(3);
 
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -45,7 +44,7 @@ void Editor::DrawEditor()
 			//                                                              out_id_at_dir is the id of the node in the direction we specified earlier, out_id_at_opposite_dir is in the opposite direction
 			auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
 			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.8f, nullptr, &dockspace_id);
-			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.25f, nullptr, &dock_id_right);
+			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dock_id_right);
 
 
 			// we now dock our windows into the docking node we made above
@@ -65,16 +64,17 @@ void Editor::DrawEditor()
 
 void Editor::DrawViewport()
 {
-	ImGui::Begin("Viewport");
-	ImGui::Text("Hello, left!");
-	//ImGui::Image(Editor::ViewportTexture, ImGui::GetWindowSize());
+	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
+	ImGui::PopStyleVar(2);
 	ImGui::End();
 }
 
 void Editor::DrawSceneGraph()
 {
 	ImGui::Begin("SceneGraph");
-	ImGui::Text("Hello, left!");
 	ImGui::End();
 }
 

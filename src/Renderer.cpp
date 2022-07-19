@@ -154,10 +154,10 @@ void Renderer::draw()
 
 	ImGui::Render();
 
-	VK_CHECK(vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000));
+	VK_CHECK(vkWaitForFences(device, 1, &getCurrentFrame().renderFen, true, 1000000000));
 
 	uint32_t swapchainImageIndex;
-	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, frame.presentSem, nullptr, &swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &swapchainImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 	{
 		// resize
@@ -168,7 +168,7 @@ void Renderer::draw()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	VK_CHECK(vkResetFences(device, 1, &frame.renderFen));
+	VK_CHECK(vkResetFences(device, 1, &getCurrentFrame().renderFen));
 	VK_CHECK(vkResetCommandBuffer(graphics.commands[getCurrentFrameNumber()].buffer, 0));
 
 	const VkCommandBuffer cmd = graphics.commands[getCurrentFrameNumber()].buffer;
@@ -227,9 +227,37 @@ void Renderer::draw()
 		&presentImgMemBarrier
 	);
 
+	const VkImageMemoryBarrier renderImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&renderImgMemBarrier
+	);
+
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = swapchain.imageViews[swapchainImageIndex],
+		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.clearValue = { 
@@ -250,33 +278,36 @@ void Renderer::draw()
 
 	vkCmdEndRendering(cmd);
 
-	const VkImageMemoryBarrier imgMemBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		.image = swapchain.images[swapchainImageIndex],
-		.subresourceRange = {
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			.baseMipLevel = 0,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		}
-	};
+	// Used for transitioning color attachment image to present image
+	//const VkImageMemoryBarrier imgMemBarrier{
+	//	.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+	//	.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+	//	.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	//	.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	//	.image = swapchain.images[swapchainImageIndex],
+	//	.subresourceRange = {
+	//		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	//		.baseMipLevel = 0,
+	//		.levelCount = 1,
+	//		.baseArrayLayer = 0,
+	//		.layerCount = 1,
+	//	}
+	//};
+	//
+	//vkCmdPipelineBarrier(
+	//	cmd,
+	//	VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	//	VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+	//	0,
+	//	0,
+	//	nullptr,
+	//	0,
+	//	nullptr,
+	//	1,
+	//	&imgMemBarrier
+	//);
 
-	vkCmdPipelineBarrier(
-		cmd,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr,
-		1,
-		&imgMemBarrier
-	);
+	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
 
 	const VkClearValue clearValue{
 		.color = { 0.1f, 0.1f, 0.1f, 1.0f }
@@ -298,21 +329,21 @@ void Renderer::draw()
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &frame.presentSem,
+		.pWaitSemaphores = &getCurrentFrame().presentSem,
 		.pWaitDstStageMask = &waitStage,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &cmd,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &frame.renderSem,
+		.pSignalSemaphores = &getCurrentFrame().renderSem,
 	};
 
-	vkQueueSubmit(graphics.queue, 1, &submit, frame.renderFen);
+	vkQueueSubmit(graphics.queue, 1, &submit, getCurrentFrame().renderFen);
 
 	const VkPresentInfoKHR presentInfo = {
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &frame.renderSem,
+		.pWaitSemaphores = &getCurrentFrame().renderSem,
 		.swapchainCount = 1,
 		.pSwapchains = &swapchain.swapchain,
 		.pImageIndices = &swapchainImageIndex,
@@ -411,11 +442,11 @@ void Renderer::initImguiRenderpass()
 	const VkAttachmentDescription color_attachment = {
 		.format = swapchain.imageFormat,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 	};
 
@@ -454,7 +485,6 @@ void Renderer::initImguiRenderpass()
 
 	VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &imguiPass));
 
-	//create the framebuffers for the swapchain images. This will connect the render-pass to the images for rendering
 	VkFramebufferCreateInfo fb_info = {
 		.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 		.pNext = nullptr,
@@ -555,12 +585,15 @@ void Renderer::initImgui()
 		.depth = 1,
 	};
 
-	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
+	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
 
-	renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
-		.imageInfo = imageInfo,
-		.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
-	});
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		frame[i].renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+			.imageInfo = imageInfo,
+			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+		});
+	}
 
 	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
 
@@ -570,7 +603,11 @@ void Renderer::initImgui()
 		vkDestroySampler(device, imageSampler, nullptr);
 		});
 
-	Editor::ViewportTexture = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(renderImage).imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		// TODO : Correct layout?
+		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
+	}
 }
 
 void Renderer::initGraphicsCommands()
@@ -635,25 +672,32 @@ void Renderer::initComputeCommands(){
 void Renderer::initSyncStructures()
 {
 	ZoneScoped;
-	const VkFenceCreateInfo fenceCreateInfo = {
-		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = VK_FENCE_CREATE_SIGNALED_BIT
-	};
 
-	vkCreateFence(device, &fenceCreateInfo, nullptr, &frame.renderFen);
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		const VkFenceCreateInfo fenceCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = VK_FENCE_CREATE_SIGNALED_BIT
+		};
+
+		vkCreateFence(device, &fenceCreateInfo, nullptr, &frame[i].renderFen);
+
+		const VkSemaphoreCreateInfo semaphoreCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0
+		};
+
+		vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame[i].presentSem);
+		vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame[i].renderSem);
+	}
+
 
 	const VkFenceCreateInfo uploadFenceCreateInfo = VulkanInit::fenceCreateInfo();
 	vkCreateFence(device, &uploadFenceCreateInfo, nullptr, &uploadContext.uploadFence);
 
-	const VkSemaphoreCreateInfo semaphoreCreateInfo = {
-		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = 0
-	};
 
-	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.presentSem);
-	vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &frame.renderSem);
 }
 
 void Renderer::initShaders() {
@@ -692,7 +736,7 @@ void Renderer::initShaders() {
 
 	Desc::BindSetLayoutInfo sceneSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = cameraBuffer,.stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = cameraBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
 		}
 	};
 
@@ -720,8 +764,6 @@ void Renderer::initShaders() {
 	};
 
 	vkAllocateDescriptorSets(device, &sceneAllocInfo, &sceneSet);
-
-	// new
 
 	Desc::WriteDescriptorSet(device, globalSet, globalSetBindInfo);
 	Desc::WriteDescriptorSet(device, sceneSet, sceneSetBindInfo);
@@ -798,7 +840,10 @@ void Renderer::deinit()
 {
 	ZoneScoped;
 
-	vkWaitForFences(device, 1, &frame.renderFen, true, 1000000000);
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		vkWaitForFences(device, 1, &frame[i].renderFen, true, 1000000000);
+	}
 
 	instanceDeletionQueue.flush();
 
@@ -815,9 +860,12 @@ void Renderer::deinit()
 	vkDestroyFence(device, uploadContext.uploadFence, nullptr);
 	vkDestroyCommandPool(device, uploadContext.commandPool, nullptr);
 
-	vkDestroySemaphore(device, frame.presentSem, nullptr);
-	vkDestroySemaphore(device, frame.renderSem, nullptr);
-	vkDestroyFence(device, frame.renderFen, nullptr);
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		vkDestroySemaphore(device, frame[i].presentSem, nullptr);
+		vkDestroySemaphore(device, frame[i].renderSem, nullptr);
+		vkDestroyFence(device, frame[i].renderFen, nullptr);
+	}
 
 	for (int i = 0; i < swapchain.imageViews.size(); i++)
 	{

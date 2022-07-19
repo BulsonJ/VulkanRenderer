@@ -5,6 +5,7 @@
 #include <glm.hpp>
 
 #include <functional>
+#include <imgui.h>
 
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
@@ -36,9 +37,12 @@ struct GPUCameraData
 
 struct RenderFrame
 {
+	Handle<Image> renderImage;
+
 	VkSemaphore presentSem;
 	VkSemaphore	renderSem;
 	VkFence renderFen;
+
 	DeletionQueue frameDeletionQueue;
 };
 
@@ -75,6 +79,7 @@ private:
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
+	[[nodiscard]] RenderFrame& getCurrentFrame() { return frame[getCurrentFrameNumber()]; }
 
 	VkInstance instance;
 	VkPhysicalDevice chosenGPU;
@@ -94,10 +99,9 @@ private:
 	uint32_t currentSwapchainImage;
 
 	VkRenderPass imguiPass;
-	Handle<Image> renderImage;
-	VkDescriptorSet imguiSet;
+	ImTextureID imguiRenderTexture[FRAME_OVERLAP];
 
-	RenderFrame frame;
+	RenderFrame frame[FRAME_OVERLAP];
 	int frameNumber{};
 
 	VkDescriptorSetLayout globalSetLayout;
