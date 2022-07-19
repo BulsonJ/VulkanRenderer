@@ -41,7 +41,7 @@ void Renderer::init()
 
 	SDL_Init(SDL_INIT_VIDEO);
 
-	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
+	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
 	window.window = SDL_CreateWindow(
 		"Vulkan Renderer",
@@ -59,10 +59,10 @@ void Renderer::init()
 	initComputeCommands();
 	initSyncStructures();
 
-
-
 	initImguiRenderpass();
 	initImgui();
+	initImguiRenderImages();
+
 
 	initShaders();
 
@@ -150,6 +150,7 @@ void Renderer::draw()
 	ImGui_ImplSDL2_NewFrame(window.window);
 	ImGui::NewFrame();
 
+	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
 	Editor::DrawEditor();
 
 	ImGui::Render();
@@ -158,9 +159,10 @@ void Renderer::draw()
 
 	uint32_t swapchainImageIndex;
 	VkResult result = vkAcquireNextImageKHR(device, swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &swapchainImageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.resized == true)
 	{
-		// resize
+		window.resized = false;
+		recreateSwapchain();
 		return;
 	}
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -255,34 +257,33 @@ void Renderer::draw()
 
 	vkCmdEndRendering(cmd);
 
-	// Used for transitioning color attachment image to present image
-	//const VkImageMemoryBarrier imgMemBarrier{
-	//	.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	//	.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-	//	.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	//	.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-	//	.image = swapchain.images[swapchainImageIndex],
-	//	.subresourceRange = {
-	//		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	//		.baseMipLevel = 0,
-	//		.levelCount = 1,
-	//		.baseArrayLayer = 0,
-	//		.layerCount = 1,
-	//	}
-	//};
-	//
-	//vkCmdPipelineBarrier(
-	//	cmd,
-	//	VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-	//	VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-	//	0,
-	//	0,
-	//	nullptr,
-	//	0,
-	//	nullptr,
-	//	1,
-	//	&imgMemBarrier
-	//);
+	const VkImageMemoryBarrier imgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+		
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&imgMemBarrier
+	);
 
 	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
 
@@ -412,7 +413,69 @@ void Renderer::createSwapchain()
 	swapchain.images = vkbSwapchain.get_images().value();
 	swapchain.imageViews = vkbSwapchain.get_image_views().value();
 	swapchain.imageFormat = vkbSwapchain.image_format;
+
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(window.extent.height * window.extent.width * 4) };
+	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
+
+	const VkExtent3D imageExtent{
+		.width = static_cast<uint32_t>(window.extent.width),
+		.height = static_cast<uint32_t>(window.extent.height),
+		.depth = 1,
+	};
+
+	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
+
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		frame[i].renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+			.imageInfo = imageInfo,
+			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+			});
+	}
 }
+
+void Renderer::destroySwapchain()
+{
+	for (int i = 0; i < swapchain.imageViews.size(); i++)
+	{
+		vkDestroyFramebuffer(device, swapchain.framebuffers[i], nullptr);
+		vkDestroyImageView(device, swapchain.imageViews[i], nullptr);
+	}
+	vkDestroyRenderPass(device, imguiPass, nullptr);
+	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
+
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		ResourceManager::ptr->DestroyImage(frame[i].renderImage);
+	};
+}
+
+void Renderer::recreateSwapchain()
+{
+	ZoneScoped;
+	
+	SDL_Event e;
+	int flags = SDL_GetWindowFlags(window.window);
+	bool minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
+	while (minimized)
+	{
+		flags = SDL_GetWindowFlags(window.window);
+		minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
+		SDL_WaitEvent(&e);
+	}
+	int width = 0, height = 0;
+	SDL_GetWindowSize(window.window, &width, &height);
+
+	vkDeviceWaitIdle(device);
+
+	window.extent.width = width;
+	window.extent.height = height;
+	destroySwapchain();
+	createSwapchain();
+	initImguiRenderpass();
+	initImguiRenderImages();
+}
+
 
 void Renderer::initImguiRenderpass() 
 {
@@ -488,6 +551,22 @@ void Renderer::initImguiRenderpass()
 	}
 }
 
+void Renderer::initImguiRenderImages()
+{
+	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
+
+	VkSampler imageSampler;
+	vkCreateSampler(device, &samplerInfo, nullptr, &imageSampler);
+	instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(device, imageSampler, nullptr);
+	});
+
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+}
+
 void Renderer::initImgui()
 {
 	// TODO : Fix when IMGUI adds dynamic rendering support
@@ -552,39 +631,6 @@ void Renderer::initImgui()
 		vkDestroyDescriptorPool(device, imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		});
-
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(window.extent.height * window.extent.width * 4) };
-	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
-
-	const VkExtent3D imageExtent{
-		.width = static_cast<uint32_t>(window.extent.width),
-		.height = static_cast<uint32_t>(window.extent.height),
-		.depth = 1,
-	};
-
-	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		frame[i].renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
-			.imageInfo = imageInfo,
-			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
-		});
-	}
-
-	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
-
-	VkSampler imageSampler;
-	vkCreateSampler(device, &samplerInfo, nullptr, &imageSampler);
-	instanceDeletionQueue.push_function([=] {
-		vkDestroySampler(device, imageSampler, nullptr);
-		});
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		// TODO : Correct layout?
-		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL);
-	}
 }
 
 void Renderer::initGraphicsCommands()
@@ -824,6 +870,8 @@ void Renderer::deinit()
 
 	instanceDeletionQueue.flush();
 
+	destroySwapchain();
+
 	delete ResourceManager::ptr;
 
 	vkDestroyPipelineLayout(device, defaultPipelineLayout, nullptr);
@@ -843,15 +891,6 @@ void Renderer::deinit()
 		vkDestroySemaphore(device, frame[i].renderSem, nullptr);
 		vkDestroyFence(device, frame[i].renderFen, nullptr);
 	}
-
-	for (int i = 0; i < swapchain.imageViews.size(); i++)
-	{
-		vkDestroyFramebuffer(device, swapchain.framebuffers[i], nullptr);
-		vkDestroyImageView(device, swapchain.imageViews[i], nullptr);
-	}
-	vkDestroyRenderPass(device, imguiPass, nullptr);
-
-	vkDestroySwapchainKHR(device, swapchain.swapchain, nullptr);
 
 	vkDestroyCommandPool(device, graphics.commands[0].pool, nullptr);
 	vkDestroyCommandPool(device, graphics.commands[1].pool, nullptr);

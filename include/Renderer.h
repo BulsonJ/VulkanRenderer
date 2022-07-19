@@ -58,6 +58,8 @@ private:
 	void initVulkan();
 	void initImguiRenderpass();
 	void createSwapchain();
+	void recreateSwapchain();
+	void destroySwapchain();
 
 	void initGraphicsCommands();
 	void initComputeCommands();
@@ -65,6 +67,7 @@ private:
 
 
 	void initImgui();
+	void initImguiRenderImages();
 	void initShaders();
 	void loadMeshes();
 	void loadImages();

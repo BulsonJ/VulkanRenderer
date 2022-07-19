@@ -22,6 +22,11 @@ void Engine::run()
 			{
 				bQuit = true;
 			}
+			if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MINIMIZED)
+			{
+				rend.window.resized = true;
+				break;
+			}
 		}
 		rend.draw();
 	}

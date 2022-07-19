@@ -43,7 +43,7 @@ struct Handle {
 
 struct Buffer
 {
-	VkBuffer buffer;
+	VkBuffer buffer{ VK_NULL_HANDLE };
 	VmaAllocation allocation;
 	void* ptr;
 };
@@ -56,7 +56,7 @@ struct BufferView
 
 struct Image
 {
-	VkImage image;
+	VkImage image {VK_NULL_HANDLE};
 	VmaAllocation allocation;
 	VkImageView imageView;
 };

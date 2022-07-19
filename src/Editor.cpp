@@ -22,7 +22,8 @@ void Editor::DrawEditor()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Editor", nullptr, window_flags);
-	ImGui::PopStyleVar(3);
+	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(2);
 
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -64,12 +65,14 @@ void Editor::DrawEditor()
 
 void Editor::DrawViewport()
 {
-	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
-	ImGui::PopStyleVar(2);
 	ImGui::End();
+	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(2);
 }
 
 void Editor::DrawSceneGraph()

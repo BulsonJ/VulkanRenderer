@@ -144,6 +144,7 @@ void ResourceManager::DestroyImage(const Handle<Image>& image)
 	if (deleteImage.image != VK_NULL_HANDLE)
 	{
 		vmaDestroyImage(allocator, deleteImage.image, deleteImage.allocation);
+		vkDestroyImageView(device, deleteImage.imageView, nullptr);
 	}
 	deleteImage.image = VK_NULL_HANDLE;
 }

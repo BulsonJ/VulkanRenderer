@@ -10,6 +10,7 @@ namespace RenderTypes {
 	{
 		SDL_Window* window = { nullptr };
 		VkExtent2D extent = { 1280 , 720 };
+		bool resized {false};
 	};
 
 	struct CommandContext
