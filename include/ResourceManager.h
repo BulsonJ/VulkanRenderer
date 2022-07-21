@@ -34,6 +34,11 @@ struct ImageCreateInfo
 	{
 		TEXTURE_2D
 	} imageType;
+	enum class Usage
+	{
+		COLOR,
+		DEPTH
+	} usage;
 };
 
 template <typename T>

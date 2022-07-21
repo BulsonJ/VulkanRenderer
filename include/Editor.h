@@ -5,6 +5,7 @@
 namespace Editor
 {
 	extern ImTextureID ViewportTexture;
+	extern ImTextureID ViewportDepthTexture;
 
 	void DrawEditor();
 

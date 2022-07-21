@@ -9,6 +9,7 @@ ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDo
 namespace Editor
 {
 	ImTextureID Editor::ViewportTexture;
+	ImTextureID Editor::ViewportDepthTexture;
 }
 
 void Editor::DrawEditor()
@@ -84,5 +85,6 @@ void Editor::DrawSceneGraph()
 void Editor::DrawLog()
 {
 	ImGui::Begin("Log");
+	ImGui::Image(Editor::ViewportDepthTexture, ImGui::GetContentRegionMax());
 	ImGui::End();
 }

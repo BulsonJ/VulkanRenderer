@@ -91,8 +91,18 @@ VkPipeline PipelineBuild::BuildPipeline(VkDevice device, const BuildInfo& buildI
 
 	// ----- NOT USED -----
 
+	VkPipelineRenderingCreateInfo dynamicRenderingInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
+	VkFormat colorAttachmentFormats[] = { VK_FORMAT_R8G8B8A8_SRGB };
+
+	dynamicRenderingInfo.pNext = nullptr;
+	dynamicRenderingInfo.colorAttachmentCount = std::size(colorAttachmentFormats);
+	dynamicRenderingInfo.pColorAttachmentFormats = colorAttachmentFormats;
+	dynamicRenderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+	dynamicRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
 	const VkGraphicsPipelineCreateInfo pipelineInfo = {
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.pNext = &dynamicRenderingInfo,
 		.stageCount = static_cast<uint32_t>(buildInfo.shaderStages.size()),
 		.pStages = buildInfo.shaderStages.data(),
 		.pVertexInputState = &buildInfo.vertexInputInfo,

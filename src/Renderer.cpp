@@ -151,6 +151,7 @@ void Renderer::draw()
 	ImGui::NewFrame();
 
 	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
+	Editor::ViewportDepthTexture = imguiDepthTexture[getCurrentFrameNumber()];
 	Editor::DrawEditor();
 
 	ImGui::Render();
@@ -220,6 +221,7 @@ void Renderer::draw()
 	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image;
 
 	VkImageMemoryBarrier initialBarriers[] = { presentImgMemBarrier,renderImgMemBarrier };
+
 	vkCmdPipelineBarrier(
 		cmd,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -233,6 +235,34 @@ void Renderer::draw()
 		initialBarriers
 	);
 
+	const VkImageMemoryBarrier depthImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.image = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).image,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&depthImgMemBarrier
+	);
+
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).imageView,
@@ -244,12 +274,24 @@ void Renderer::draw()
 		}
 	};
 
+	const VkRenderingAttachmentInfo depthAttachInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).imageView,
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = {
+			.depthStencil = {1.0f},
+		}
+	};
+
 	const VkRenderingInfo renderInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 		.renderArea = scissor,
 		.layerCount = 1,
 		.colorAttachmentCount = 1,
-		.pColorAttachments = &colorAttachInfo
+		.pColorAttachments = &colorAttachInfo,
+		.pDepthAttachment = &depthAttachInfo,
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
@@ -285,6 +327,34 @@ void Renderer::draw()
 		&imgMemBarrier
 	);
 
+
+	const VkImageMemoryBarrier depthShaderImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		.image = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).image,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+
+	vkCmdPipelineBarrier(
+		cmd,
+		VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		0,
+		0,
+		nullptr,
+		0,
+		nullptr,
+		1,
+		&depthShaderImgMemBarrier
+	);
 	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
 
 	const VkClearValue clearValue{
@@ -424,12 +494,20 @@ void Renderer::createSwapchain()
 	};
 
 	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
-
+	const VkFormat depthFormat{ VK_FORMAT_D32_SFLOAT };
+	const VkImageCreateInfo depthImageInfo = VulkanInit::imageCreateInfo(depthFormat, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		frame[i].renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
 			.imageInfo = imageInfo,
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+			.usage = ImageCreateInfo::Usage::COLOR
+			});
+
+		frame[i].depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+			.imageInfo = depthImageInfo,
+			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+			.usage = ImageCreateInfo::Usage::DEPTH
 			});
 	}
 }
@@ -564,6 +642,7 @@ void Renderer::initImguiRenderImages()
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		imguiDepthTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 }
 
@@ -830,7 +909,7 @@ void Renderer::initShaders() {
 
 	PipelineBuild::BuildInfo buildInfo{
 		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
-		.depthStencil = VulkanInit::depthStencilStateCreateInfo(false, false),
+		.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, true),
 		.pipelineLayout = defaultPipelineLayout,
 		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
 		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),

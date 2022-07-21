@@ -116,11 +116,13 @@ Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 
 	vmaCreateImage(allocator, &createInfo.imageInfo, &allocInfo, &newImage.image, &newImage.allocation, nullptr);
 
+	const VkImageAspectFlags imageViewType = createInfo.usage == ImageCreateInfo::Usage::COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+
 	VkImageViewCreateInfo imageinfo = {};
 	switch (createInfo.imageType)
 	{
 	case ImageCreateInfo::ImageType::TEXTURE_2D:
-		imageinfo = VulkanInit::imageViewCreateInfo(VK_FORMAT_R8G8B8A8_SRGB, newImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+		imageinfo = VulkanInit::imageViewCreateInfo(createInfo.imageInfo.format, newImage.image, imageViewType);
 		break;
 	default:
 		break;
