@@ -111,8 +111,9 @@ Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 {
 	Image newImage;
 
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	VmaAllocationCreateInfo allocInfo = {
+		.usage = VMA_MEMORY_USAGE_AUTO ,
+	};
 
 	vmaCreateImage(allocator, &createInfo.imageInfo, &allocInfo, &newImage.image, &newImage.allocation, nullptr);
 

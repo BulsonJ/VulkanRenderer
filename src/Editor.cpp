@@ -59,26 +59,31 @@ void Editor::DrawEditor()
 
 	ImGui::End();
 
-	DrawViewport();
-	DrawViewportDepth();
+	DrawViewportWindow();
 	DrawSceneGraph();
 	DrawLog();
 }
 
-void Editor::DrawViewport()
+void Editor::DrawViewportWindow()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
-	ImGui::End();
+	DrawViewport();
+	DrawViewportDepth();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar(2);
 }
 
+void Editor::DrawViewport()
+{
+	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
+	ImGui::End();
+}
+
 void Editor::DrawViewportDepth() {
-	ImGui::Begin("Viewport Depth", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	ImGui::Begin("Viewport Depth", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoFocusOnAppearing);
 	ImGui::Image(Editor::ViewportDepthTexture, ImGui::GetContentRegionMax());
 	ImGui::End();
 }
