@@ -10,6 +10,7 @@ namespace Editor
 	void DrawEditor();
 
 	void DrawViewport();
+	void DrawViewportDepth();
 	void DrawSceneGraph();
 	void DrawLog();
 };

@@ -151,7 +151,7 @@ void Renderer::draw()
 	ImGui::NewFrame();
 
 	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
-	Editor::ViewportDepthTexture = imguiDepthTexture[getCurrentFrameNumber()];
+	Editor::ViewportDepthTexture = imguiDepthTexture;
 	Editor::DrawEditor();
 
 	ImGui::Render();
@@ -240,7 +240,7 @@ void Renderer::draw()
 		.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).image,
+		.image = ResourceManager::ptr->GetImage(depthImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -276,7 +276,7 @@ void Renderer::draw()
 
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(depthImage).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -333,7 +333,7 @@ void Renderer::draw()
 		.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(getCurrentFrame().depthImage).image,
+		.image = ResourceManager::ptr->GetImage(depthImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -504,12 +504,13 @@ void Renderer::createSwapchain()
 			.usage = ImageCreateInfo::Usage::COLOR
 			});
 
-		frame[i].depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+	}
+
+	depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
 			.imageInfo = depthImageInfo,
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
 			.usage = ImageCreateInfo::Usage::DEPTH
-			});
-	}
+		});
 }
 
 void Renderer::destroySwapchain()
@@ -642,8 +643,8 @@ void Renderer::initImguiRenderImages()
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		imguiDepthTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
+	imguiDepthTexture = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void Renderer::initImgui()

@@ -48,11 +48,11 @@ void Editor::DrawEditor()
 			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.8f, nullptr, &dockspace_id);
 			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dock_id_right);
 
-
 			// we now dock our windows into the docking node we made above
 			ImGui::DockBuilderDockWindow("Log", dock_id_down);
 			ImGui::DockBuilderDockWindow("SceneGraph", dock_id_left);
 			ImGui::DockBuilderDockWindow("Viewport", dock_id_right);
+			ImGui::DockBuilderDockWindow("Viewport Depth", dock_id_right);
 			ImGui::DockBuilderFinish(dockspace_id);
 		}
 	}
@@ -60,6 +60,7 @@ void Editor::DrawEditor()
 	ImGui::End();
 
 	DrawViewport();
+	DrawViewportDepth();
 	DrawSceneGraph();
 	DrawLog();
 }
@@ -76,6 +77,12 @@ void Editor::DrawViewport()
 	ImGui::PopStyleVar(2);
 }
 
+void Editor::DrawViewportDepth() {
+	ImGui::Begin("Viewport Depth", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	ImGui::Image(Editor::ViewportDepthTexture, ImGui::GetContentRegionMax());
+	ImGui::End();
+}
+
 void Editor::DrawSceneGraph()
 {
 	ImGui::Begin("SceneGraph");
@@ -85,6 +92,5 @@ void Editor::DrawSceneGraph()
 void Editor::DrawLog()
 {
 	ImGui::Begin("Log");
-	ImGui::Image(Editor::ViewportDepthTexture, ImGui::GetContentRegionMax());
 	ImGui::End();
 }

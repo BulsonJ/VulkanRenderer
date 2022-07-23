@@ -38,7 +38,6 @@ struct GPUCameraData
 struct RenderFrame
 {
 	Handle<Image> renderImage;
-	Handle<Image> depthImage;
 
 	VkSemaphore presentSem;
 	VkSemaphore	renderSem;
@@ -104,9 +103,10 @@ private:
 
 	VkRenderPass imguiPass;
 	ImTextureID imguiRenderTexture[FRAME_OVERLAP];
-	ImTextureID imguiDepthTexture[FRAME_OVERLAP];
+	ImTextureID imguiDepthTexture;
 
 	RenderFrame frame[FRAME_OVERLAP];
+	Handle<Image> depthImage;
 	int frameNumber{};
 
 	VkDescriptorSetLayout globalSetLayout;

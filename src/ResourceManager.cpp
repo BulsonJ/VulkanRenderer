@@ -127,6 +127,18 @@ Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 	default:
 		break;
 	}
+	
+	switch (createInfo.usage)
+	{
+	default:
+		break;
+	case ImageCreateInfo::Usage::DEPTH:
+		imageinfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageinfo.components.g = VK_COMPONENT_SWIZZLE_R;
+		imageinfo.components.b = VK_COMPONENT_SWIZZLE_R;
+		break;
+	}
+
 	vkCreateImageView(device, &imageinfo, nullptr, &newImage.imageView);
 
 	Handle<Image> newHandle = getNewImageHandle();
