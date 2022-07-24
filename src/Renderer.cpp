@@ -110,16 +110,18 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 			glm::vec3(0.0f, 1.0f, 0.0f));
 	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
 
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
+
 	const Mesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
-		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
-		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
 
-		GPUPushConstants constants = {
-			.transformIndex = i
+		const GPUPushConstants constants = {
+			.transformIndex = i,
 		};
 		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
