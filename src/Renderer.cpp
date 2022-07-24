@@ -86,19 +86,22 @@ void Renderer::initShaderData()
 void Renderer::drawObjects(VkCommandBuffer cmd)
 {	
 	ZoneScoped;
-	const int objectCount = 1;
+	const int COUNT = renderObjects.size();
+	const RenderObject* FIRST = renderObjects.data();
 
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	const glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
-	const glm::vec3 rotation = { 0.0f, abs(frameNumber / 120.f), 0.0f };
-	const glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
-	const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, translation)
-		* glm::toMat4(glm::quat(rotation))
-		* glm::scale(glm::mat4{ 1.0 }, scale);
-	transformData[0].modelMatrix = modelMatrix;
-	memcpy(ResourceManager::ptr->GetBuffer(transformBuffer.buffer).ptr, &transformData, transformBuffer.size);
+	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(transformBuffer.buffer).ptr;
+	for (int i = 0; i < COUNT; ++i)
+	{
+		const RenderObject& object = FIRST[i];
+		const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, object.translation)
+			* glm::toMat4(glm::quat(object.rotation))
+			* glm::scale(glm::mat4{ 1.0 }, object.scale);
+
+		objectSSBO[i].modelMatrix = modelMatrix;
+	}
 	// binding 1
 		//slot 0 - camera
 	camera.view =
@@ -108,27 +111,30 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
 
 	const Mesh* lastMesh = nullptr;
-	for (int i = 0; i < objectCount; ++i)
+	for (int i = 0; i < COUNT; ++i)
 	{
+		const RenderObject& object = FIRST[i];
 		vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
 		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
 
-		GPUPushConstants constants = {};
-		constants.transformIndex = 0;
+		GPUPushConstants constants = {
+			.transformIndex = i
+		};
 		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
-		const Mesh* currentMesh = &triangleMesh;
+		const Mesh* currentMesh = object.mesh;
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
 			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer.buffer).buffer;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
-			if (triangleMesh.hasIndices())
+			if (currentMesh->hasIndices())
 			{
 				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer.buffer).buffer;
 				vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
+			lastMesh = currentMesh;
 		}
 
 		if (currentMesh->hasIndices())
@@ -151,7 +157,6 @@ void Renderer::draw()
 	ImGui::NewFrame();
 
 	Editor::ViewportTexture = imguiRenderTexture[getCurrentFrameNumber()];
-	Editor::ViewportDepthTexture = imguiDepthTexture;
 	Editor::DrawEditor();
 
 	ImGui::Render();
@@ -645,6 +650,8 @@ void Renderer::initImguiRenderImages()
 		imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 	imguiDepthTexture = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	Editor::ViewportDepthTexture = imguiDepthTexture;
 }
 
 void Renderer::initImgui()
@@ -927,7 +934,17 @@ void Renderer::initShaders() {
 void Renderer::loadMeshes()
 {
 	ZoneScoped;
-	uploadMesh(triangleMesh);
+	meshes["triangleMesh"] = Mesh::GenerateTriangle();
+	uploadMesh(meshes["triangleMesh"]);
+
+	RenderObject triangleObject{
+		.mesh = &meshes["triangleMesh"],
+	};
+	renderObjects.push_back(triangleObject);
+	triangleObject.translation = { 0.5f,0.0f,1.0f };
+	renderObjects.push_back(triangleObject);
+	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
+	renderObjects.push_back(triangleObject);
 }
 
 void Renderer::loadImages()

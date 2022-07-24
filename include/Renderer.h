@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <imgui.h>
+#include <unordered_map>
 
 #include "RenderTypes.h"
 #include "PipelineBuilder.h"
@@ -33,6 +34,16 @@ struct GPUCameraData
 {
 	glm::mat4 view{};
 	glm::mat4 proj{};
+};
+
+struct RenderObject
+{
+	Mesh* mesh;
+
+	glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
+
 };
 
 struct RenderFrame
@@ -113,7 +124,6 @@ private:
 	VkDescriptorPool globalPool;
 	VkDescriptorSet globalSet;
 	BufferView transformBuffer;
-	GPUTransform transformData[MAX_OBJECTS];
 
 	VkDescriptorSetLayout sceneSetLayout;
 	VkDescriptorPool scenePool;
@@ -124,6 +134,10 @@ private:
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
 
-	Mesh triangleMesh{ Mesh::GenerateTriangle()};
+	std::unordered_map<std::string, Mesh> meshes;
+	//std::unordered_map<std::string, Handle<Image>> images;
+
+	std::vector<RenderObject> renderObjects;
+
 	Handle<Image> defaultTexture;
 };
