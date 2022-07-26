@@ -125,7 +125,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 		};
 		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
-		const Mesh* currentMesh = object.mesh;
+		const Mesh* currentMesh { object.mesh };
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
@@ -854,28 +854,9 @@ void Renderer::initShaders() {
 
 	globalSetLayout = Desc::CreateDescLayout(device, globalSetBindInfo);
 	sceneSetLayout = Desc::CreateDescLayout(device, sceneSetBindInfo);
-
-	// allocate descriptor set. this seems fine?
-
-	const VkDescriptorSetAllocateInfo allocInfo = {
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.pNext = nullptr,
-		.descriptorPool = globalPool,
-		.descriptorSetCount = 1,
-		.pSetLayouts = &globalSetLayout,
-	};
-
-	vkAllocateDescriptorSets(device, &allocInfo, &globalSet);
-
-	const VkDescriptorSetAllocateInfo sceneAllocInfo = {
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.pNext = nullptr,
-		.descriptorPool = scenePool,
-		.descriptorSetCount = 1,
-		.pSetLayouts = &sceneSetLayout,
-	};
-
-	vkAllocateDescriptorSets(device, &sceneAllocInfo, &sceneSet);
+	
+	globalSet = Desc::AllocateDescSet(device, globalPool, globalSetLayout);
+	sceneSet = Desc::AllocateDescSet(device, scenePool, sceneSetLayout);
 
 	Desc::WriteDescriptorSet(device, globalSet, globalSetBindInfo);
 	Desc::WriteDescriptorSet(device, sceneSet, sceneSetBindInfo);

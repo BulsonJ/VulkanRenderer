@@ -67,7 +67,7 @@ VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, BindSetLayoutInfo&
 	return setLayout;
 }
 
-void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, BindSetLayoutInfo& writeInfo)
+void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet& descSet, BindSetLayoutInfo& writeInfo)
 {
 	std::vector<VkWriteDescriptorSet> writes;
 	for (const auto& write : writeInfo.bindings)
@@ -95,4 +95,21 @@ void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, BindSetL
 	}
 
 	vkUpdateDescriptorSets(device, writes.size(), writes.data(), 0, nullptr);
+}
+
+VkDescriptorSet Desc::AllocateDescSet(VkDevice device, VkDescriptorPool descPool, VkDescriptorSetLayout setLayout)
+{
+	VkDescriptorSet descSet;
+
+	const VkDescriptorSetAllocateInfo allocInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = descPool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &setLayout,
+	};
+
+	vkAllocateDescriptorSets(device, &allocInfo, &descSet);
+
+	return descSet;
 }

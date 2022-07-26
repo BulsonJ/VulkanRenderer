@@ -38,6 +38,7 @@ namespace Desc
 	};
 
 	VkDescriptorSetLayout CreateDescLayout(VkDevice device, BindSetLayoutInfo& createInfo);
-	void WriteDescriptorSet(VkDevice device, VkDescriptorSet descSet, BindSetLayoutInfo& writeInfo);
+	VkDescriptorSet AllocateDescSet(VkDevice device, VkDescriptorPool descPool, VkDescriptorSetLayout setLayout);
+	void WriteDescriptorSet(VkDevice device, VkDescriptorSet& descSet, BindSetLayoutInfo& writeInfo);
 };
 
