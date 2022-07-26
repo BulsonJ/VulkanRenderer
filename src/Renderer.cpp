@@ -92,7 +92,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(transformBuffer.buffer).ptr;
+	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer.buffer).ptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
@@ -108,10 +108,10 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
 			glm::vec3(0.0f, 0.0f, 0.0f),
 			glm::vec3(0.0f, 1.0f, 0.0f));
-	memcpy(ResourceManager::ptr->GetBuffer(cameraBuffer.buffer).ptr, &camera, cameraBuffer.size);
+	memcpy(ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer.buffer).ptr, &camera, getCurrentFrame().cameraBuffer.size);
 
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &globalSet, 0, nullptr);
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &sceneSet, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 
@@ -835,31 +835,46 @@ void Renderer::initShaders() {
 
 	// create buffers
 
-	transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
-	cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
-
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
+		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
+	}
 	// create descriptor layout
+
+	// Felt awkward as creating buffer layout, but needed to change buffer layout later. Maybe create BindSetInfo from BindSetLayoutInfo,
+	// then pass those to WriteDescriptorSet
+	// Ex: globalSetLayoutBindInfo create -> globalSetBindInfo(bindings with empty .buffer) -> pass to write
 
 	Desc::BindSetLayoutInfo globalSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = transformBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].transformBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
 		}
 	};
 
 	Desc::BindSetLayoutInfo sceneSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = cameraBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].cameraBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
 		}
 	};
 
 	globalSetLayout = Desc::CreateDescLayout(device, globalSetBindInfo);
 	sceneSetLayout = Desc::CreateDescLayout(device, sceneSetBindInfo);
 	
-	globalSet = Desc::AllocateDescSet(device, globalPool, globalSetLayout);
-	sceneSet = Desc::AllocateDescSet(device, scenePool, sceneSetLayout);
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		frame[i].globalSet = Desc::AllocateDescSet(device, globalPool, globalSetLayout);
+		frame[i].sceneSet = Desc::AllocateDescSet(device, scenePool, sceneSetLayout);
 
-	Desc::WriteDescriptorSet(device, globalSet, globalSetBindInfo);
-	Desc::WriteDescriptorSet(device, sceneSet, sceneSetBindInfo);
+		globalSetBindInfo.bindings[0].buffer = frame[i].transformBuffer;
+		sceneSetBindInfo.bindings[0].buffer = frame[i].cameraBuffer;
+
+		Desc::WriteDescriptorSet(device, frame[i].globalSet, globalSetBindInfo);
+		Desc::WriteDescriptorSet(device, frame[i].sceneSet, sceneSetBindInfo);
+	}
+
+
+
 
 	// set up push constants
 

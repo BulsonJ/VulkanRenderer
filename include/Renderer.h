@@ -55,6 +55,12 @@ struct RenderFrame
 	VkFence renderFen;
 
 	DeletionQueue frameDeletionQueue;
+
+	VkDescriptorSet globalSet;
+	BufferView transformBuffer;
+
+	VkDescriptorSet sceneSet;
+	BufferView cameraBuffer;
 };
 
 class Renderer 
@@ -122,13 +128,10 @@ private:
 
 	VkDescriptorSetLayout globalSetLayout;
 	VkDescriptorPool globalPool;
-	VkDescriptorSet globalSet;
-	BufferView transformBuffer;
 
 	VkDescriptorSetLayout sceneSetLayout;
 	VkDescriptorPool scenePool;
-	VkDescriptorSet sceneSet;
-	BufferView cameraBuffer;
+
 	GPUCameraData camera;
 
 	VkPipelineLayout defaultPipelineLayout;
