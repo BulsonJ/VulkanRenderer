@@ -19,6 +19,9 @@
 #include <backends/imgui_impl_vulkan.h>
 
 #include <iostream>
+#include <spdlog/spdlog.h>
+#include "spdlog/sinks/ostream_sink.h"
+#include <memory>
 
 #include "VulkanInit.h"
 #include "VulkanUtil.h"
@@ -53,6 +56,7 @@ void Renderer::init()
 		window_flags
 	);
 
+	initLogger();
 	initVulkan();
 
 	createSwapchain();
@@ -406,10 +410,22 @@ void Renderer::draw()
 		.pSwapchains = &swapchain.swapchain,
 		.pImageIndices = &swapchainImageIndex,
 	};
-
 	vkQueuePresentKHR(graphics.queue, &presentInfo);
 	FrameMark;
 	frameNumber++;
+}
+
+void Renderer::initLogger()
+{
+	auto console = spdlog::get("console");
+	if (!console)
+	{
+		auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_st>(Editor::_oss);
+		console = std::make_shared<spdlog::logger>("console", ostream_sink);
+		//console->set_pattern(">%v<");
+		console->set_level(spdlog::level::debug);
+	}
+	spdlog::set_default_logger(console);
 }
 
 void Renderer::initVulkan() {
@@ -475,6 +491,7 @@ void Renderer::initVulkan() {
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 
 	ResourceManager::ptr = new ResourceManager(device, allocator);
+	spdlog::info("Vulkan Initialised");
 }
 
 void Renderer::createSwapchain()
@@ -521,6 +538,7 @@ void Renderer::createSwapchain()
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
 			.usage = ImageCreateInfo::Usage::DEPTH
 		});
+	spdlog::info("Create Swapchain");
 }
 
 void Renderer::destroySwapchain()
@@ -537,6 +555,7 @@ void Renderer::destroySwapchain()
 	{
 		ResourceManager::ptr->DestroyImage(frame[i].renderImage);
 	};
+	spdlog::info("Destroy swapchain");
 }
 
 void Renderer::recreateSwapchain()
@@ -1006,6 +1025,7 @@ void Renderer::deinit()
 void Renderer::uploadMesh(Mesh& mesh)
 {
 	ZoneScoped;
+	spdlog::info("Mesh Uploaded");
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
 

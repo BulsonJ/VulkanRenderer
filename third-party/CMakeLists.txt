@@ -46,3 +46,7 @@ target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2)
 add_library(stb_image INTERFACE)
 
 target_include_directories(stb_image INTERFACE stb_image)
+
+add_library(spdlog INTERFACE)
+
+target_include_directories(spdlog INTERFACE spdlog/include)
