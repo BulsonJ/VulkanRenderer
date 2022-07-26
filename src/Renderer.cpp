@@ -35,6 +35,7 @@
 		}                                                           \
 	} while (0)
 
+
 void Renderer::init()
 {
 	ZoneScoped;
@@ -80,7 +81,7 @@ void Renderer::initShaderData()
 	camera.view =
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
 			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.0f));
+			UP_DIR);
 }
 
 void Renderer::drawObjects(VkCommandBuffer cmd)
@@ -107,8 +108,10 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	camera.view =
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
 			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.0f));
-	memcpy(ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer.buffer).ptr, &camera, getCurrentFrame().cameraBuffer.size);
+			UP_DIR);
+	camera.view = glm::rotate(camera.view, frameNumber / 120.0f, UP_DIR);
+	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer.buffer).ptr;
+	*cameraSSBO = camera;
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
