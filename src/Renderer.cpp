@@ -11,6 +11,9 @@
 #include <public/tracy/Tracy.hpp>
 #include <public/common/TracySystem.hpp>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <gtx/transform.hpp>
 #include <gtx/quaternion.hpp>
 
@@ -82,6 +85,7 @@ void Renderer::initShaderData()
 {
 	ZoneScoped;
 	camera.proj = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+	camera.proj[1][1] *= -1;
 	camera.view =
 		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
 			glm::vec3(0.0f, 0.0f, 0.0f),
@@ -960,11 +964,22 @@ void Renderer::loadMeshes()
 	RenderObject triangleObject{
 		.mesh = &meshes["triangleMesh"],
 	};
-	renderObjects.push_back(triangleObject);
 	triangleObject.translation = { 0.5f,0.0f,1.0f };
 	renderObjects.push_back(triangleObject);
 	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
 	renderObjects.push_back(triangleObject);
+
+	Mesh fileMesh;
+	if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
+	{
+		meshes["fileMesh"] = fileMesh;
+		uploadMesh(meshes["fileMesh"]);
+
+		RenderObject monkeyObject{
+			.mesh = &meshes["fileMesh"],
+		};
+		renderObjects.push_back(monkeyObject);
+	}
 }
 
 void Renderer::loadImages()

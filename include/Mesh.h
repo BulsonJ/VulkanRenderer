@@ -33,6 +33,7 @@ struct Mesh {
 	BufferView indexBuffer;
 
 	bool hasIndices() const;
+	bool loadFromObj(const char* filename);
 
 	static glm::vec3 CalculateSurfaceNormal(glm::vec3 pointA, glm::vec3 pointB, glm::vec3 pointC) {
 		const glm::vec3 sideAB = pointB - pointA;
