@@ -969,8 +969,7 @@ void Renderer::loadMeshes()
 	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
 	renderObjects.push_back(triangleObject);
 
-	Mesh fileMesh;
-	if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
+	if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
 	{
 		meshes["fileMesh"] = fileMesh;
 		uploadMesh(meshes["fileMesh"]);
@@ -1075,7 +1074,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 	if (!mesh.hasIndices()) return;
 
 	{
-		const size_t bufferSize = mesh.indices.size() * sizeof(Vertex);
+		const size_t bufferSize = mesh.indices.size() * sizeof(Mesh::Index);
 
 		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,

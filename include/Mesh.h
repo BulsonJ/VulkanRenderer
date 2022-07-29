@@ -7,6 +7,8 @@
 
 #include "ResourceManager.h"
 
+
+
 struct VertexInputDescription {
 
 	std::vector<VkVertexInputBindingDescription> bindings;
@@ -26,8 +28,10 @@ struct Vertex {
 };
 
 struct Mesh {
+	typedef uint32_t Index;
+
     std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
+	std::vector<Index> indices;
 
 	BufferView vertexBuffer;
 	BufferView indexBuffer;
