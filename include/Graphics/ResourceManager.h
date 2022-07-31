@@ -45,11 +45,6 @@ struct Buffer
 	VkBuffer buffer{ VK_NULL_HANDLE };
 	VmaAllocation allocation;
 	void* ptr;
-};
-
-struct BufferView
-{
-	Handle<Buffer> buffer;
 	std::size_t size;
 };
 
@@ -67,7 +62,7 @@ public:
 	ResourceManager(const VkDevice device, const VmaAllocator allocator) : device(device), allocator(allocator) {}
 	~ResourceManager();
 
-	BufferView CreateBuffer(const BufferCreateInfo& createInfo);
+	Handle<Buffer> CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const Handle<Buffer>& buffer);
 	void DestroyBuffer(const Handle<Buffer>& buffer);
 

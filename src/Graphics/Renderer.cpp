@@ -98,7 +98,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer.buffer).ptr;
+	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
@@ -115,7 +115,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 			glm::vec3(0.0f, 0.0f, 0.0f),
 			UP_DIR);
 	camera.view = glm::rotate(camera.view, frameNumber / 120.0f, UP_DIR);
-	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer.buffer).ptr;
+	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
 	*cameraSSBO = camera;
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
@@ -137,11 +137,11 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
-			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer.buffer).buffer;
+			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer).buffer;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
 			if (currentMesh->hasIndices())
 			{
-				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer.buffer).buffer;
+				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer).buffer;
 				vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			lastMesh = currentMesh;
@@ -825,7 +825,6 @@ void Renderer::initSyncStructures()
 void Renderer::initShaders() {
 
 	ZoneScoped;
-	// ------------------------ IMPROVE
 
 	// create descriptor pool
 
@@ -852,35 +851,69 @@ void Renderer::initShaders() {
 	}
 	// create descriptor layout
 
-	// Felt awkward as creating buffer layout, but needed to change buffer layout later. Maybe create BindSetInfo from BindSetLayoutInfo,
-	// then pass those to WriteDescriptorSet
-	// Ex: globalSetLayoutBindInfo create -> globalSetBindInfo(bindings with empty .buffer) -> pass to write
-
-	Desc::BindSetLayoutInfo globalSetBindInfo{
-		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].transformBuffer, .stage = GFX::Stages::ALL, .usage = GFX::Buffer::Usage::STORAGE}
-		}
+	const VkDescriptorSetLayoutBinding globalBindings[] = {
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)}
+	};
+	const VkDescriptorSetLayoutCreateInfo globalSetLayoutInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.bindingCount = std::size(globalBindings),
+		.pBindings = globalBindings,
 	};
 
-	Desc::BindSetLayoutInfo sceneSetBindInfo{
-		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].cameraBuffer, .stage = GFX::Stages::ALL, .usage = GFX::Buffer::Usage::UNIFORM}
-		}
+	const VkDescriptorSetLayoutBinding sceneBindings[] = {
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)}
+	};
+	const VkDescriptorSetLayoutCreateInfo sceneSetLayoutInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.bindingCount = std::size(sceneBindings),
+		.pBindings = sceneBindings,
 	};
 
-	globalSetLayout = Desc::CreateDescLayout(device, globalSetBindInfo);
-	sceneSetLayout = Desc::CreateDescLayout(device, sceneSetBindInfo);
+	vkCreateDescriptorSetLayout(device, &globalSetLayoutInfo, nullptr, &globalSetLayout);
+	vkCreateDescriptorSetLayout(device, &sceneSetLayoutInfo, nullptr, &sceneSetLayout);
 	
+	// create descriptors
+
+	const VkDescriptorSetAllocateInfo allocInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = globalPool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &globalSetLayout,
+	};
+
+	const VkDescriptorSetAllocateInfo sceneAllocInfo = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.descriptorPool = scenePool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &sceneSetLayout,
+	};
+
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		frame[i].globalSet = Desc::AllocateDescSet(device, globalPool, globalSetLayout);
-		frame[i].sceneSet = Desc::AllocateDescSet(device, scenePool, sceneSetLayout);
+		vkAllocateDescriptorSets(device, &allocInfo, &frame[i].globalSet);
+		vkAllocateDescriptorSets(device, &sceneAllocInfo, &frame[i].sceneSet);
 
-		globalSetBindInfo.bindings[0].buffer = frame[i].transformBuffer;
-		sceneSetBindInfo.bindings[0].buffer = frame[i].cameraBuffer;
+		VkDescriptorBufferInfo globalBuffers[] = {
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).size}
+		};
+		VkDescriptorBufferInfo sceneBuffers[] = {
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).size}
+		};
 
-		Desc::WriteDescriptorSet(device, frame[i].globalSet, globalSetBindInfo);
-		Desc::WriteDescriptorSet(device, frame[i].sceneSet, sceneSetBindInfo);
+		const VkWriteDescriptorSet globalWrites[] = {
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[0], 0)
+		};
+		vkUpdateDescriptorSets(device, std::size(globalWrites), globalWrites, 0, nullptr);
+		const VkWriteDescriptorSet sceneWrites[] = {
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frame[i].sceneSet, &sceneBuffers[0], 0)
+		};
+		vkUpdateDescriptorSets(device, std::size(sceneWrites), sceneWrites, 0, nullptr);
 	}
 
 	// set up push constants
@@ -1023,13 +1056,13 @@ void Renderer::uploadMesh(Mesh& mesh)
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
 
-		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
-		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.vertices.data(), bufferSize);
+		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.vertices.data(), bufferSize);
 
 		mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1037,8 +1070,8 @@ void Renderer::uploadMesh(Mesh& mesh)
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
-		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer.buffer);
+		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer);
 
 		immediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
@@ -1048,7 +1081,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
 			});
 
-		ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 
 	if (!mesh.hasIndices()) return;
@@ -1056,13 +1089,13 @@ void Renderer::uploadMesh(Mesh& mesh)
 	{
 		const size_t bufferSize = mesh.indices.size() * sizeof(Mesh::Index);
 
-		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
-		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, mesh.indices.data(), bufferSize);
+		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.indices.data(), bufferSize);
 
 		mesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1070,8 +1103,8 @@ void Renderer::uploadMesh(Mesh& mesh)
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
-		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer.buffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.indexBuffer.buffer);
+		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.indexBuffer);
 
 		immediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
@@ -1081,7 +1114,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
 			});
 
-		ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 }
 
@@ -1090,7 +1123,7 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
 	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
 
-	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+	Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -1098,7 +1131,7 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 
 	//copy data to buffer
 
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).ptr, image.ptr, static_cast<size_t>(imageSize));
+	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr, static_cast<size_t>(imageSize));
 
 	const VkExtent3D imageExtent{
 		.width = static_cast<uint32_t>(image.texWidth),
@@ -1142,7 +1175,7 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 			.imageExtent = imageExtent,
 		};
 
-		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer.buffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
 		VkImageMemoryBarrier imageBarrier_toReadable = imageBarrier_toTransfer;
 
@@ -1154,7 +1187,7 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toReadable);
 		});
 
-	ResourceManager::ptr->DestroyBuffer(stagingBuffer.buffer);
+	ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 
 	return newImage;
 }

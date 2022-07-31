@@ -12,7 +12,6 @@
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
 #include "Mesh.h"
-#include "DescriptorSet.h"
 #include "DeletionQueue.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
@@ -58,10 +57,10 @@ struct RenderFrame
 	DeletionQueue frameDeletionQueue;
 
 	VkDescriptorSet globalSet;
-	BufferView transformBuffer;
+	Handle<Buffer> transformBuffer;
 
 	VkDescriptorSet sceneSet;
-	BufferView cameraBuffer;
+	Handle<Buffer> cameraBuffer;
 };
 
 class Renderer 

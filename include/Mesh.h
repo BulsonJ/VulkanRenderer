@@ -31,8 +31,8 @@ struct Mesh {
     std::vector<Vertex> vertices;
 	std::vector<Index> indices;
 
-	BufferView vertexBuffer;
-	BufferView indexBuffer;
+	Handle<Buffer> vertexBuffer;
+	Handle<Buffer> indexBuffer;
 
 	bool hasIndices() const;
 	bool loadFromObj(const char* filename);
