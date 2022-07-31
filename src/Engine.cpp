@@ -2,9 +2,12 @@
 #include <SDL.h>
 #include <public/tracy/Tracy.hpp>
 #include <backends/imgui_impl_sdl.h>
+#include "Log.h"
 
 void Engine::init() {
 	ZoneScoped;
+
+	Log::Init();
 	rend.init();
 }
 

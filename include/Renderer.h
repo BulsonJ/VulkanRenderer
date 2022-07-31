@@ -73,7 +73,6 @@ public:
 
 	RenderTypes::WindowContext window;
 private:
-	void initLogger();
 	void initVulkan();
 	void initImguiRenderpass();
 	void createSwapchain();

@@ -22,13 +22,12 @@
 #include <backends/imgui_impl_vulkan.h>
 
 #include <iostream>
-#include <spdlog/spdlog.h>
-#include "spdlog/sinks/ostream_sink.h"
 #include <memory>
 
 #include "VulkanInit.h"
 #include "VulkanUtil.h"
 #include "Editor.h"
+#include "Log.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -36,7 +35,7 @@
 		VkResult err = x;                                           \
 		if (err)                                                    \
 		{                                                           \
-			std::cout <<"Detected Vulkan error: " << err << std::endl; \
+			LOG_CORE_ERROR("Detected Vulkan error: " + err); \
 			abort();                                                \
 		}                                                           \
 	} while (0)
@@ -59,7 +58,6 @@ void Renderer::init()
 		window_flags
 	);
 
-	initLogger();
 	initVulkan();
 
 	createSwapchain();
@@ -419,19 +417,6 @@ void Renderer::draw()
 	frameNumber++;
 }
 
-void Renderer::initLogger()
-{
-	auto console = spdlog::get("console");
-	if (!console)
-	{
-		auto ostream_sink = std::make_shared<spdlog::sinks::ostream_sink_st>(Editor::_oss);
-		console = std::make_shared<spdlog::logger>("console", ostream_sink);
-		//console->set_pattern(">%v<");
-		console->set_level(spdlog::level::debug);
-	}
-	spdlog::set_default_logger(console);
-}
-
 void Renderer::initVulkan() {
 	ZoneScoped;
 	vkb::InstanceBuilder builder;
@@ -495,7 +480,7 @@ void Renderer::initVulkan() {
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 
 	ResourceManager::ptr = new ResourceManager(device, allocator);
-	spdlog::info("Vulkan Initialised");
+	LOG_CORE_INFO("Vulkan Initialised");
 }
 
 void Renderer::createSwapchain()
@@ -542,7 +527,7 @@ void Renderer::createSwapchain()
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
 			.usage = ImageCreateInfo::Usage::DEPTH
 		});
-	spdlog::info("Create Swapchain");
+	LOG_CORE_INFO("Create Swapchain");
 }
 
 void Renderer::destroySwapchain()
@@ -559,7 +544,7 @@ void Renderer::destroySwapchain()
 	{
 		ResourceManager::ptr->DestroyImage(frame[i].renderImage);
 	};
-	spdlog::info("Destroy swapchain");
+	LOG_CORE_INFO("Destroy swapchain");
 }
 
 void Renderer::recreateSwapchain()
@@ -899,9 +884,6 @@ void Renderer::initShaders() {
 		Desc::WriteDescriptorSet(device, frame[i].sceneSet, sceneSetBindInfo);
 	}
 
-
-
-
 	// set up push constants
 
 	const VkPushConstantRange defaultPushConstants{
@@ -921,9 +903,8 @@ void Renderer::initShaders() {
 
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
 		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(device, fileLoc.c_str());
-		std::cout << fileLoc << std::endl;
 		assert(shader.has_value());
-		std::cout << "Triangle fragment shader successfully loaded" << std::endl;
+		LOG_CORE_INFO("Triangle fragment shader successfully loaded" + fileLoc);
 		return shader.value();
 	};
 
@@ -1039,7 +1020,7 @@ void Renderer::deinit()
 void Renderer::uploadMesh(Mesh& mesh)
 {
 	ZoneScoped;
-	spdlog::info("Mesh Uploaded");
+	LOG_CORE_INFO("Mesh Uploaded");
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
 

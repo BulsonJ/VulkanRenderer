@@ -3,7 +3,7 @@
 #include <imgui_internal.h.>
 #include <backends/imgui_impl_vulkan.h>
 
-#include "spdlog/spdlog.h"
+#include "Log.h"
 #include <memory>
 
 static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
@@ -13,7 +13,6 @@ namespace Editor
 {
 	ImTextureID Editor::ViewportTexture;
 	ImTextureID Editor::ViewportDepthTexture;
-	std::ostringstream _oss;
 }
 
 void Editor::DrawEditor()
@@ -101,6 +100,6 @@ void Editor::DrawSceneGraph()
 void Editor::DrawLog()
 {
 	ImGui::Begin("Log");
-	ImGui::TextWrapped(_oss.str().c_str());
+	ImGui::TextWrapped(Log::GetCoreLoggerStream().str().c_str());
 	ImGui::End();
 }

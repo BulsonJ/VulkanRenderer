@@ -6,6 +6,7 @@
 #include <stb_image.h>
 
 #include <public/tracy/Tracy.hpp>
+#include "Log.h"
 
 CPUImage::~CPUImage()
 {
@@ -20,7 +21,7 @@ void VulkanUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
 
 	if (!pixels)
 	{
-		std::cout << "Failed to load texture file " << file << std::endl;
+		LOG_CORE_WARN("Failed to load texture file: " + *file);
 		return;
 	}
 

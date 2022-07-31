@@ -7,7 +7,6 @@ namespace Editor
 {
 	extern ImTextureID ViewportTexture;
 	extern ImTextureID ViewportDepthTexture;
-	extern std::ostringstream _oss;
 
 	void DrawEditor();
 

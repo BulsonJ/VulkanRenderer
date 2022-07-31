@@ -4,6 +4,8 @@
 #include <array>
 #include <tiny_obj_loader.h>
 
+#include "Log.h"
+
 VertexInputDescription Vertex::getVertexDescription()
 {
 	VertexInputDescription description;
@@ -376,7 +378,7 @@ bool Mesh::loadFromObj(const char* filename)
 	//make sure to output the warnings to the console, in case there are issues with the file
 	if (!warn.empty())
 	{
-		std::cout << "WARN: " << warn << std::endl;
+		LOG_CORE_WARN(warn);
 	}
 	//if we have any error, print it to the console, and break the mesh loading.
 	//This happens if the file can't be found or is malformed
