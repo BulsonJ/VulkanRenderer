@@ -822,7 +822,8 @@ void Renderer::initSyncStructures()
 
 }
 
-void Renderer::initShaders() {
+void Renderer::initShaders()
+{
 
 	ZoneScoped;
 
@@ -832,6 +833,8 @@ void Renderer::initShaders() {
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32 },
+		{ VK_DESCRIPTOR_TYPE_SAMPLER, 10 }
 	};
 	VkDescriptorPoolCreateInfo poolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -851,12 +854,27 @@ void Renderer::initShaders() {
 	}
 	// create descriptor layout
 
-	const VkDescriptorSetLayoutBinding globalBindings[] = {
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)}
+	VkDescriptorBindingFlags flags[] = {
+		0,
+		0,
+		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
 	};
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfo globalBindingFlags{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+		.bindingCount = std::size(flags),
+		.pBindingFlags = flags,
+	};
+
+	const VkDescriptorSetLayoutBinding globalBindings[] = {
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT, 2, 32)},
+	};
+
 	const VkDescriptorSetLayoutCreateInfo globalSetLayoutInfo = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		.pNext = nullptr,
+		.pNext = &globalBindingFlags,
 		.flags = 0,
 		.bindingCount = std::size(globalBindings),
 		.pBindings = globalBindings,
@@ -875,12 +893,20 @@ void Renderer::initShaders() {
 
 	vkCreateDescriptorSetLayout(device, &globalSetLayoutInfo, nullptr, &globalSetLayout);
 	vkCreateDescriptorSetLayout(device, &sceneSetLayoutInfo, nullptr, &sceneSetLayout);
-	
+
 	// create descriptors
+
+	uint32_t counts[] = { 32 };  // Set 0 has a variable count descriptor with a maximum of 32 elements
+
+	VkDescriptorSetVariableDescriptorCountAllocateInfo globalSetCounts = {
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+		.descriptorSetCount = 1,
+		.pDescriptorCounts = counts
+	};
 
 	const VkDescriptorSetAllocateInfo allocInfo = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.pNext = nullptr,
+		.pNext = &globalSetCounts,
 		.descriptorPool = globalPool,
 		.descriptorSetCount = 1,
 		.pSetLayouts = &globalSetLayout,
@@ -894,6 +920,15 @@ void Renderer::initShaders() {
 		.pSetLayouts = &sceneSetLayout,
 	};
 
+	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
+	VkSampler imageSampler;
+	vkCreateSampler(device, &samplerInfo, nullptr, &imageSampler);
+	instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(device, imageSampler, nullptr);
+		});
+
+	VkDescriptorImageInfo samplerDescInfo{.sampler = imageSampler };
+
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		vkAllocateDescriptorSets(device, &allocInfo, &frame[i].globalSet);
@@ -901,13 +936,14 @@ void Renderer::initShaders() {
 
 		VkDescriptorBufferInfo globalBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).size}
-		};
+		};	
 		VkDescriptorBufferInfo sceneBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).size}
 		};
 
 		const VkWriteDescriptorSet globalWrites[] = {
-			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[0], 0)
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[0], 0),
+			VulkanInit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_SAMPLER, frame[i].globalSet, &samplerDescInfo, 1)
 		};
 		vkUpdateDescriptorSets(device, std::size(globalWrites), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
@@ -999,8 +1035,28 @@ void Renderer::loadImages()
 	ZoneScoped;
 	CPUImage test;
 	ImageUtil::LoadImageFromFile("../../assets/textures/checkerboard.png", test);
-	defaultTexture = uploadImage(test);
-	return;
+	bindlessImages[0] = uploadImage(test);
+
+
+	VkDescriptorImageInfo image_infos[] = {
+		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+	};
+
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		VkWriteDescriptorSet write{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = frame[i].globalSet,
+			.dstBinding = 2,    // We're updating binding 1, which is the one with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT and VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT flags from the above example
+			.dstArrayElement = 0,   // Start at array index 0
+			.descriptorCount = std::size(image_infos),   // Write two textures to this descriptor
+			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			.pImageInfo = image_infos,
+		};
+
+		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	}
+
 }
 
 void Renderer::deinit() 
@@ -1191,7 +1247,6 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 
 	return newImage;
 }
-
 
 void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
 {

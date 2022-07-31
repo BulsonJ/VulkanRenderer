@@ -260,12 +260,12 @@ VkWriteDescriptorSet VulkanInit::writeDescriptorImage(VkDescriptorType type, VkD
 	return write;
 }
 
-VkDescriptorSetLayoutBinding VulkanInit::descriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding)
+VkDescriptorSetLayoutBinding VulkanInit::descriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding, uint32_t descriptorCount /*= 1*/)
 {
 	VkDescriptorSetLayoutBinding setbind = {
 		.binding = binding,
 		.descriptorType = type,
-		.descriptorCount = 1,
+		.descriptorCount = descriptorCount,
 		.stageFlags = stageFlags,
 		.pImmutableSamplers = nullptr,
 	};

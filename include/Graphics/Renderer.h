@@ -142,5 +142,5 @@ private:
 
 	std::vector<RenderObject> renderObjects;
 
-	Handle<Image> defaultTexture;
+	std::array<Handle<Image>, 32> bindlessImages;
 };
