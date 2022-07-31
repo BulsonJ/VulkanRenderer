@@ -17,7 +17,6 @@
 #include <gtx/transform.hpp>
 #include <gtx/quaternion.hpp>
 
-#include <imgui.h>
 #include <backends/imgui_impl_sdl.h>
 #include <backends/imgui_impl_vulkan.h>
 

@@ -10,7 +10,10 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "include/*.h")
-add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES})
+
+add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES} )
+
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES})
 
 target_include_directories(VulkanRenderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
