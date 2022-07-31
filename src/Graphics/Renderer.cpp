@@ -1034,12 +1034,15 @@ void Renderer::loadImages()
 {
 	ZoneScoped;
 	CPUImage test;
-	ImageUtil::LoadImageFromFile("../../assets/textures/checkerboard.png", test);
+	ImageUtil::LoadImageFromFile("../../assets/textures/default.png", test);
 	bindlessImages[0] = uploadImage(test);
+	//ImageUtil::LoadImageFromFile("../../assets/textures/textureTest.png", test);
+	//bindlessImages[1] = uploadImage(test);
 
 
 	VkDescriptorImageInfo image_infos[] = {
-		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+		//{.imageView = ResourceManager::ptr->GetImage(bindlessImages[1]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
 	};
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
