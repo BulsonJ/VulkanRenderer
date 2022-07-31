@@ -10,10 +10,8 @@ struct CPUImage
 	int texChannels;
 };
 
-namespace VulkanUtil
+namespace ImageUtil
 {
-
 	void LoadImageFromFile(const char* file, CPUImage& outImage);
-
 }
 

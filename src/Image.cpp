@@ -13,7 +13,7 @@ CPUImage::~CPUImage()
 	stbi_image_free(this->ptr);
 }
 
-void VulkanUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
+void ImageUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
 {
 	ZoneScoped;
 

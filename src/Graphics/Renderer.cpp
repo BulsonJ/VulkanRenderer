@@ -966,7 +966,7 @@ void Renderer::loadImages()
 {
 	ZoneScoped;
 	CPUImage test;
-	VulkanUtil::LoadImageFromFile("../../assets/textures/checkerboard.png", test);
+	ImageUtil::LoadImageFromFile("../../assets/textures/checkerboard.png", test);
 	defaultTexture = uploadImage(test);
 	return;
 }
