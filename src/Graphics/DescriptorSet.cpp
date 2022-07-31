@@ -17,21 +17,21 @@ VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, BindSetLayoutInfo&
 			.pImmutableSamplers = nullptr,
 		};
 
-		if ((bind.stage && Desc::Stages::VERTEX) != 0) 
+		if ((bind.stage && GFX::Stages::VERTEX) != 0) 
 		{
 			setBind.stageFlags = setBind.stageFlags | VK_SHADER_STAGE_VERTEX_BIT; 
 		}
-		if ((bind.stage && Desc::Stages::FRAGMENT) != 0)
+		if ((bind.stage && GFX::Stages::FRAGMENT) != 0)
 		{
 			setBind.stageFlags = setBind.stageFlags | VK_SHADER_STAGE_FRAGMENT_BIT;
 		}
 
 		switch (bind.usage)
 		{
-		case Usage::STORAGE:
+		case GFX::Buffer::Usage::STORAGE:
 			setBind.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			break;
-		case Usage::UNIFORM:
+		case GFX::Buffer::Usage::UNIFORM:
 			setBind.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			break;
 		}
@@ -81,10 +81,10 @@ void Desc::WriteDescriptorSet(VkDevice device, VkDescriptorSet& descSet, BindSet
 		VkDescriptorType descType;
 		switch (write.usage)
 		{
-		case Usage::STORAGE:
+		case GFX::Buffer::Usage::STORAGE:
 			descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			break;
-		case Usage::UNIFORM:
+		case GFX::Buffer::Usage::UNIFORM:
 			descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			break;
 		}

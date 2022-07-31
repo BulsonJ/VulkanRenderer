@@ -1,22 +1,11 @@
 #pragma once
 #include <vector>
+
 #include "ResourceManager.h"
+#include "Graphics/Common.h"
 
 namespace Desc
 {
-	enum Stages
-	{
-		VERTEX = 1,
-		FRAGMENT = 2,
-		ALL = FRAGMENT | VERTEX
-	};
-
-	enum class Usage
-	{
-		UNIFORM,
-		STORAGE,
-	};
-
 	enum Flags
 	{
 		VARIABLE_DESCRIPTOR = 1,
@@ -27,8 +16,8 @@ namespace Desc
 	{
 		int slot;
 		BufferView buffer;
-		Stages stage;
-		Usage usage;
+		GFX::Stages stage;
+		GFX::Buffer::Usage usage;
 		Flags flags;
 	};
 

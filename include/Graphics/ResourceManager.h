@@ -2,22 +2,16 @@
 
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-
 #include <array>
+
+#include "Graphics/Common.h"
 
 
 struct BufferCreateInfo
 {
 	std::size_t size;
 
-	enum class Usage 
-	{
-		NONE,
-		UNIFORM,
-		STORAGE,
-		VERTEX,
-		INDEX,
-	} usage {Usage::NONE};
+	GFX::Buffer::Usage usage {GFX::Buffer::Usage::NONE};
 
 	enum class Transfer
 	{

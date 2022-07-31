@@ -847,8 +847,8 @@ void Renderer::initShaders() {
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = BufferCreateInfo::Usage::STORAGE });
-		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = BufferCreateInfo::Usage::UNIFORM });
+		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = GFX::Buffer::Usage::UNIFORM });
 	}
 	// create descriptor layout
 
@@ -858,13 +858,13 @@ void Renderer::initShaders() {
 
 	Desc::BindSetLayoutInfo globalSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].transformBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::STORAGE}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].transformBuffer, .stage = GFX::Stages::ALL, .usage = GFX::Buffer::Usage::STORAGE}
 		}
 	};
 
 	Desc::BindSetLayoutInfo sceneSetBindInfo{
 		.bindings = {
-			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].cameraBuffer, .stage = Desc::Stages::ALL, .usage = Desc::Usage::UNIFORM}
+			Desc::BindLayoutInfo{.slot = 0, .buffer = frame[0].cameraBuffer, .stage = GFX::Stages::ALL, .usage = GFX::Buffer::Usage::UNIFORM}
 		}
 	};
 
@@ -1025,7 +1025,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
-			.usage = BufferCreateInfo::Usage::NONE,
+			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
@@ -1033,7 +1033,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
-			.usage = BufferCreateInfo::Usage::VERTEX,
+			.usage = GFX::Buffer::Usage::VERTEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
@@ -1058,7 +1058,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
-			.usage = BufferCreateInfo::Usage::INDEX,
+			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
@@ -1066,7 +1066,7 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		mesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
-			.usage = BufferCreateInfo::Usage::INDEX,
+			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
@@ -1092,7 +1092,7 @@ Handle<Image> Renderer::uploadImage(CPUImage& image)
 
 	BufferView stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
-			.usage = BufferCreateInfo::Usage::NONE,
+			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 		});
 

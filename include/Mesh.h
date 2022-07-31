@@ -5,9 +5,7 @@
 #include <vector>
 #include <optional>
 
-#include "ResourceManager.h"
-
-
+#include "Graphics/ResourceManager.h"
 
 struct VertexInputDescription {
 

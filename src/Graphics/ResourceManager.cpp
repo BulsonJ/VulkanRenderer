@@ -3,7 +3,6 @@
 
 ResourceManager* ResourceManager::ptr = nullptr;
 
-
 ResourceManager::~ResourceManager()
 {
 	for (const auto& buffer : buffers)
@@ -39,18 +38,18 @@ BufferView ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	{
 	default:
 		break;
-	case BufferCreateInfo::Usage::NONE:
+	case  GFX::Buffer::Usage::NONE:
 		break;
-	case BufferCreateInfo::Usage::UNIFORM:
+	case  GFX::Buffer::Usage::UNIFORM:
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		break;
-	case BufferCreateInfo::Usage::STORAGE:
+	case  GFX::Buffer::Usage::STORAGE:
 		bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		break;
-	case BufferCreateInfo::Usage::VERTEX:
+	case  GFX::Buffer::Usage::VERTEX:
 		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		break;
-	case BufferCreateInfo::Usage::INDEX:
+	case  GFX::Buffer::Usage::INDEX:
 		bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		break;
 	}
