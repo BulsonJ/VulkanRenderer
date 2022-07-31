@@ -1,4 +1,4 @@
-#include "Renderer.h"
+#include "Graphics/Renderer.h"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -24,8 +24,8 @@
 #include <iostream>
 #include <memory>
 
-#include "VulkanInit.h"
-#include "VulkanUtil.h"
+#include "Graphics/VulkanInit.h"
+#include "Image.h"
 #include "Editor.h"
 #include "Log.h"
 

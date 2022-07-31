@@ -1,7 +1,7 @@
-#include "DescriptorSet.h"
+#include "Graphics/DescriptorSet.h"
 #include <cstdint>
 
-#include "VulkanInit.h"
+#include "Graphics/VulkanInit.h"
 
 VkDescriptorSetLayout Desc::CreateDescLayout(VkDevice device, BindSetLayoutInfo& createInfo)
 {

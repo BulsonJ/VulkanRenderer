@@ -1,5 +1,5 @@
-#include "ResourceManager.h"
-#include "VulkanInit.h"
+#include "Graphics/ResourceManager.h"
+#include "Graphics/VulkanInit.h"
 
 ResourceManager* ResourceManager::ptr = nullptr;
 

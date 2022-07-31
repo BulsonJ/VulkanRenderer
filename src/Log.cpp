@@ -1,5 +1,7 @@
 #include "Log.h"
 
+#include "public/tracy/Tracy.hpp"
+
 #include "spdlog/sinks/ostream_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
@@ -7,6 +9,8 @@ std::shared_ptr<spdlog::logger> Log::coreLogger;
 std::ostringstream Log::coreLoggerStream;
 
 void Log::Init() {
+	ZoneScoped;
+
 	spdlog::set_pattern("%^[%T] %n: %v%s");
 
 	if (!coreLogger)
