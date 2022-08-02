@@ -853,9 +853,9 @@ void Renderer::initShaders()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
+		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUDrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUMaterialData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUDrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 
 		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = GFX::Buffer::Usage::UNIFORM });
 	}
@@ -946,9 +946,9 @@ void Renderer::initShaders()
 		vkAllocateDescriptorSets(device, &sceneAllocInfo, &frame[i].sceneSet);
 
 		VkDescriptorBufferInfo globalBuffers[] = {
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).size },
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).size},
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].materialBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].materialBuffer).size},
-			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).size }
 		};	
 		VkDescriptorBufferInfo sceneBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).size}

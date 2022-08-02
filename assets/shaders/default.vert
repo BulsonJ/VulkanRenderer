@@ -13,31 +13,31 @@ layout( push_constant ) uniform constants
 	int drawDataIndex;
 } pushConstants;
 
+struct DrawData{
+	int transformIndex;
+	int materialIndex;
+};
+
 struct ObjectData{
 	mat4 modelMatrix;
 };
-
-layout(std140,set = 0, binding = 0) readonly buffer TransformBuffer{
-	ObjectData objects[];
-} transformData;
 
 struct MaterialData{
 	int transformIndex;
 	int materialIndex;
 };
 
-layout(std140,set = 0, binding = 1) readonly buffer MaterialDataBuffer{
-	MaterialData objects[];
-} materialDataArray;
-
-struct DrawData{
-	int transformIndex;
-	int materialIndex;
-};
-
-layout(std140,set = 0, binding = 2) readonly buffer DrawDataBuffer{
+layout(std140,set = 0, binding = 0) readonly buffer DrawDataBuffer{
 	DrawData objects[];
 } drawDataArray;
+
+layout(std140,set = 0, binding = 1) readonly buffer TransformBuffer{
+	ObjectData objects[];
+} transformData;
+
+layout(std140,set = 0, binding = 2) readonly buffer MaterialDataBuffer{
+	MaterialData objects[];
+} materialDataArray;
 
 layout(std140,set = 1, binding = 0) uniform  CameraBuffer{
 	mat4 viewMatrix;
