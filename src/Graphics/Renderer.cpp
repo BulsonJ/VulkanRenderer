@@ -114,19 +114,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
 		objectSSBO[i].modelMatrix = modelMatrix;
 
-		if (i == 0)
-		{
-			materialSSBO[i] = GPUMaterialData{
-				.diffuseIndex = {-1,0,0,0} 
-			};
-
-		}
-		else
-		{
-			materialSSBO[i] = {
-				.diffuseIndex = {i - 1,0,0,0},
-			};
-		}
+		materialSSBO[i] = object.material.materialData;
 
 	}
 	// binding 1
@@ -139,20 +127,25 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
 	*cameraSSBO = camera;
 
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
-
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
-
+	const MaterialType* lastMaterialType = nullptr;
 	const Mesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
 
+		const MaterialType* currentMaterialType{ object.material.matType };
+		if (currentMaterialType != lastMaterialType)
+		{
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
+
+			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipeline);
+		}
+
 		const GPUPushConstants constants = {
 			.drawDataIndex = i,
 		};
-		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
+		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
 		const Mesh* currentMesh { object.mesh };
 		if (currentMesh != lastMesh)
@@ -999,6 +992,7 @@ void Renderer::initShaders()
 	defaultPipelineLayoutInfo.pushConstantRangeCount = 1;
 	defaultPipelineLayoutInfo.pPushConstantRanges = &defaultPushConstants;
 
+	VkPipelineLayout defaultPipelineLayout;
 	vkCreatePipelineLayout(device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
 
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
@@ -1030,7 +1024,10 @@ void Renderer::initShaders()
 		.vertexInputInfo = vertexInputInfo,
 	};
 
-	defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);	
+	VkPipeline defaultPipeline = PipelineBuild::BuildPipeline(device, buildInfo);	
+	const std::string defaultMaterialName = "defaultMaterial";
+	materials[defaultMaterialName] = { .pipeline = defaultPipeline, .pipelineLayout = defaultPipelineLayout };
+	LOG_CORE_INFO("Material created: " + defaultMaterialName);
 
 	vkDestroyShaderModule(device, vertexShader, nullptr);
 	vkDestroyShaderModule(device, fragShader, nullptr);
@@ -1042,8 +1039,14 @@ void Renderer::loadMeshes()
 	meshes["triangleMesh"] = Mesh::GenerateTriangle();
 	uploadMesh(meshes["triangleMesh"]);
 
+	const MaterialInstance defaultMaterialInstance = {
+		.matType = &materials["defaultMaterial"],
+		.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
+	};
+
 	RenderObject triangleObject{
 		.mesh = &meshes["triangleMesh"],
+		.material = defaultMaterialInstance,
 	};
 
 	if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
@@ -1051,8 +1054,14 @@ void Renderer::loadMeshes()
 		meshes["fileMesh"] = fileMesh;
 		uploadMesh(meshes["fileMesh"]);
 
-		RenderObject monkeyObject{
+		const MaterialInstance monkeyMaterialInstance = {
+		.matType = &materials["defaultMaterial"],
+		.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
+		};
+
+		const RenderObject monkeyObject{
 			.mesh = &meshes["fileMesh"],
+			.material = monkeyMaterialInstance
 		};
 		renderObjects.push_back(monkeyObject);
 	}
@@ -1067,12 +1076,19 @@ void Renderer::loadMeshes()
 void Renderer::loadImages()
 {
 	ZoneScoped;
-	CPUImage test;
-	ImageUtil::LoadImageFromFile("../../assets/textures/default.png", test);
-	bindlessImages[0] = uploadImage(test);
-	CPUImage test2;
-	ImageUtil::LoadImageFromFile("../../assets/textures/texture.jpg", test2);
-	bindlessImages[1] = uploadImage(test2);
+
+	static const std::string textures[] = {
+		"../../assets/textures/default.png",
+		"../../assets/textures/texture.jpg"
+	};
+
+	for (int i = 0; i < std::size(textures); ++i)
+	{
+		CPUImage img;
+		ImageUtil::LoadImageFromFile(textures[i].c_str(), img);
+		bindlessImages[i] = uploadImage(img);
+		LOG_CORE_INFO("Texture Uploaded: " + textures[i]);
+	}
 
 
 	VkDescriptorImageInfo image_infos[] = {
@@ -1093,6 +1109,7 @@ void Renderer::loadImages()
 		};
 
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+		LOG_CORE_INFO("Bindless Texture Array Updated");
 	}
 
 }
@@ -1112,8 +1129,11 @@ void Renderer::deinit()
 
 	delete ResourceManager::ptr;
 
-	vkDestroyPipelineLayout(device, defaultPipelineLayout, nullptr);
-	vkDestroyPipeline(device, defaultPipeline, nullptr);
+	for (auto& material : materials)
+	{
+		vkDestroyPipelineLayout(device, material.second.pipelineLayout, nullptr);
+		vkDestroyPipeline(device, material.second.pipeline, nullptr);
+	}
 
 	vkDestroyDescriptorPool(device, scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(device, sceneSetLayout, nullptr);

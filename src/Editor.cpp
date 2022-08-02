@@ -100,6 +100,15 @@ void Editor::DrawSceneGraph()
 void Editor::DrawLog()
 {
 	ImGui::Begin("Log");
-	ImGui::TextWrapped(Log::GetCoreLoggerStream().str().c_str());
+
+	const auto newLogStream = Log::GetCoreLoggerStream().str();
+	static auto currentlogStream = Log::GetCoreLoggerStream().str();
+	ImGui::TextWrapped(currentlogStream.c_str());
+	if (currentlogStream != newLogStream)
+	{
+		ImGui::SetScrollHereY(1.0f);
+		currentlogStream = newLogStream;
+	}
+
 	ImGui::End();
 }

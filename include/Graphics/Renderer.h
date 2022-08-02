@@ -53,9 +53,23 @@ struct GPUCameraData
 	glm::mat4 proj{};
 };
 
+struct MaterialType
+{
+	VkPipeline pipeline = { VK_NULL_HANDLE };
+	VkPipelineLayout pipelineLayout = { VK_NULL_HANDLE };
+};
+
+struct MaterialInstance
+{
+	MaterialType* matType = nullptr;
+
+	GPUMaterialData materialData;
+};
+
 struct RenderObject
 {
 	Mesh* mesh;
+	MaterialInstance material = {};
 
 	glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
@@ -153,11 +167,9 @@ private:
 
 	GPUCameraData camera;
 
-	VkPipelineLayout defaultPipelineLayout;
-	VkPipeline defaultPipeline;
-
 	std::unordered_map<std::string, Mesh> meshes;
 	//std::unordered_map<std::string, Handle<Image>> images;
+	std::unordered_map<std::string, MaterialType> materials;
 
 	std::vector<RenderObject> renderObjects;
 
