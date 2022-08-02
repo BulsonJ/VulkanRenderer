@@ -121,6 +121,7 @@ private:
 	void initShaders();
 	void loadMeshes();
 	void loadImages();
+	void setupScene();
 
 	void initShaderData();
 

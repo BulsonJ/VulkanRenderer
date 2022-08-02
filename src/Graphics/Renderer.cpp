@@ -73,6 +73,7 @@ void Renderer::init()
 
 	loadMeshes();
 	loadImages();
+	setupScene();
 
 	initShaderData();
 
@@ -1040,38 +1041,11 @@ void Renderer::loadMeshes()
 	meshes["triangleMesh"] = Mesh::GenerateTriangle();
 	uploadMesh(meshes["triangleMesh"]);
 
-	const MaterialInstance defaultMaterialInstance = {
-		.matType = &materials["defaultMaterial"],
-		.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
-	};
-
-	RenderObject triangleObject{
-		.mesh = &meshes["triangleMesh"],
-		.material = defaultMaterialInstance,
-	};
-
 	if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
 	{
 		meshes["fileMesh"] = fileMesh;
 		uploadMesh(meshes["fileMesh"]);
-
-		const MaterialInstance monkeyMaterialInstance = {
-		.matType = &materials["defaultMaterial"],
-		.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
-		};
-
-		const RenderObject monkeyObject{
-			.mesh = &meshes["fileMesh"],
-			.material = monkeyMaterialInstance
-		};
-		renderObjects.push_back(monkeyObject);
 	}
-
-	triangleObject.translation = { 0.5f,0.0f,1.0f };
-	renderObjects.push_back(triangleObject);
-
-	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
-	renderObjects.push_back(triangleObject);
 }
 
 void Renderer::loadImages()
@@ -1090,7 +1064,6 @@ void Renderer::loadImages()
 		bindlessImages[i] = uploadImage(img);
 		LOG_CORE_INFO("Texture Uploaded: " + textures[i]);
 	}
-
 
 	VkDescriptorImageInfo image_infos[] = {
 		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
@@ -1113,6 +1086,37 @@ void Renderer::loadImages()
 		LOG_CORE_INFO("Bindless Texture Array Updated");
 	}
 
+}
+
+
+void Renderer::setupScene()
+{
+	const MaterialInstance defaultMaterialInstance = {
+	.matType = &materials["defaultMaterial"],
+	.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
+	};
+
+	RenderObject triangleObject{
+		.mesh = &meshes["triangleMesh"],
+		.material = defaultMaterialInstance,
+	};
+
+	triangleObject.translation = { 0.5f,0.0f,1.0f };
+	renderObjects.push_back(triangleObject);
+
+	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
+	renderObjects.push_back(triangleObject);
+
+	const MaterialInstance monkeyMaterialInstance = {
+		.matType = &materials["defaultMaterial"],
+		.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
+	};
+
+	const RenderObject monkeyObject{
+		.mesh = &meshes["fileMesh"],
+		.material = monkeyMaterialInstance
+	};
+	renderObjects.push_back(monkeyObject);
 }
 
 void Renderer::deinit() 
@@ -1328,3 +1332,4 @@ void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& functi
 
 	vkResetCommandPool(device, uploadContext.commandPool, 0);
 }
+
