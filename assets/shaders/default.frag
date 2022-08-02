@@ -5,8 +5,8 @@ layout (location = 1) in vec2 inTexCoords;
 
 layout (location = 0) out vec4 outFragColor;
 
-layout (set = 0, binding = 1) uniform sampler samp;
-layout (set = 0, binding = 2) uniform texture2D bindlessTextures[];
+layout (set = 0, binding = 3) uniform sampler samp;
+layout (set = 0, binding = 4) uniform texture2D bindlessTextures[];
 
 
 void main(void)	{

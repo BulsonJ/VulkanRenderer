@@ -22,7 +22,23 @@ struct CPUImage;
 
 struct GPUPushConstants
 {
+	int drawDataIndex;
+};
+
+struct GPUDrawData
+{
 	int transformIndex;
+	int materialIndex;
+	int padding[2];
+};
+
+struct GPUMaterialData
+{
+	int diffuseIndex = {-1};
+	glm::vec4 ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
+	float shininess = { 32.0f };
 };
 
 struct GPUTransform
@@ -58,6 +74,8 @@ struct RenderFrame
 
 	VkDescriptorSet globalSet;
 	Handle<Buffer> transformBuffer;
+	Handle<Buffer> materialBuffer;
+	Handle<Buffer> drawDataBuffer;
 
 	VkDescriptorSet sceneSet;
 	Handle<Buffer> cameraBuffer;

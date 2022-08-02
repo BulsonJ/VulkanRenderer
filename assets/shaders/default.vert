@@ -10,7 +10,7 @@ layout (location = 1) out vec2 outTexCoords;
 
 layout( push_constant ) uniform constants
 {
-	int transformIndex;
+	int drawDataIndex;
 } pushConstants;
 
 struct ObjectData{
@@ -21,15 +21,34 @@ layout(std140,set = 0, binding = 0) readonly buffer TransformBuffer{
 	ObjectData objects[];
 } transformData;
 
+struct MaterialData{
+	int transformIndex;
+	int materialIndex;
+};
+
+layout(std140,set = 0, binding = 1) readonly buffer MaterialDataBuffer{
+	MaterialData objects[];
+} materialDataArray;
+
+struct DrawData{
+	int transformIndex;
+	int materialIndex;
+};
+
+layout(std140,set = 0, binding = 2) readonly buffer DrawDataBuffer{
+	DrawData objects[];
+} drawDataArray;
+
 layout(std140,set = 1, binding = 0) uniform  CameraBuffer{
 	mat4 viewMatrix;
 	mat4 projMatrix;
 } cameraData;
 
 void main(void)		{
+	DrawData draw = drawDataArray.objects[pushConstants.drawDataIndex];
 	mat4 proj = cameraData.projMatrix;
 	mat4 view = cameraData.viewMatrix;
-	mat4 model = transformData.objects[pushConstants.transformIndex].modelMatrix;
+	mat4 model = transformData.objects[draw.transformIndex].modelMatrix;
 	mat4 transformMatrix = (proj * view * model);	
 	gl_Position = transformMatrix * vec4(vPosition, 1.0f);
 	outColor = vColor;

@@ -99,14 +99,18 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	// binding 0
 		//slot 0 - transform
 	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
+	GPUDrawData* drawDataSSBO = (GPUDrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
+
 		const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, object.translation)
 			* glm::toMat4(glm::quat(object.rotation))
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
-
 		objectSSBO[i].modelMatrix = modelMatrix;
+
+		drawDataSSBO[i].transformIndex = i;
+		drawDataSSBO[i].materialIndex = 1;
 	}
 	// binding 1
 		//slot 0 - camera
@@ -129,7 +133,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 		const RenderObject& object = FIRST[i];
 
 		const GPUPushConstants constants = {
-			.transformIndex = i,
+			.drawDataIndex = i,
 		};
 		vkCmdPushConstants(cmd, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
@@ -850,11 +854,16 @@ void Renderer::initShaders()
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUMaterialData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUDrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+
 		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = GFX::Buffer::Usage::UNIFORM });
 	}
 	// create descriptor layout
 
 	VkDescriptorBindingFlags flags[] = {
+		0,
+		0,
 		0,
 		0,
 		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
@@ -868,8 +877,10 @@ void Renderer::initShaders()
 
 	const VkDescriptorSetLayoutBinding globalBindings[] = {
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT, 2, 32)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 2)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT, 4, 32)},
 	};
 
 	const VkDescriptorSetLayoutCreateInfo globalSetLayoutInfo = {
@@ -935,7 +946,9 @@ void Renderer::initShaders()
 		vkAllocateDescriptorSets(device, &sceneAllocInfo, &frame[i].sceneSet);
 
 		VkDescriptorBufferInfo globalBuffers[] = {
-			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).size}
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].transformBuffer).size},
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].materialBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].materialBuffer).size},
+			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].drawDataBuffer).size }
 		};	
 		VkDescriptorBufferInfo sceneBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(frame[i].cameraBuffer).size}
@@ -943,7 +956,9 @@ void Renderer::initShaders()
 
 		const VkWriteDescriptorSet globalWrites[] = {
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[0], 0),
-			VulkanInit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_SAMPLER, frame[i].globalSet, &samplerDescInfo, 1)
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[1], 1),
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[2], 2),
+			VulkanInit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_SAMPLER, frame[i].globalSet, &samplerDescInfo, 3)
 		};
 		vkUpdateDescriptorSets(device, std::size(globalWrites), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
@@ -1050,7 +1065,7 @@ void Renderer::loadImages()
 		VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = frame[i].globalSet,
-			.dstBinding = 2,    // We're updating binding 1, which is the one with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT and VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT flags from the above example
+			.dstBinding = 4,    // We're updating binding 1, which is the one with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT and VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT flags from the above example
 			.dstArrayElement = 0,   // Start at array index 0
 			.descriptorCount = std::size(image_infos),   // Write two textures to this descriptor
 			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
