@@ -1,5 +1,6 @@
 #include "Graphics/ResourceManager.h"
 #include "Graphics/VulkanInit.h"
+#include "Graphics/VulkanCommon.h"
 
 ResourceManager* ResourceManager::ptr = nullptr;
 
@@ -34,25 +35,7 @@ Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.size = createInfo.size,
 	};
-	switch (createInfo.usage)
-	{
-	default:
-		break;
-	case  GFX::Buffer::Usage::NONE:
-		break;
-	case  GFX::Buffer::Usage::UNIFORM:
-		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		break;
-	case  GFX::Buffer::Usage::STORAGE:
-		bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		break;
-	case  GFX::Buffer::Usage::VERTEX:
-		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		break;
-	case  GFX::Buffer::Usage::INDEX:
-		bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-		break;
-	}
+	bufferInfo.usage = VkCommon::ToVulkan(createInfo.usage);
 
 	switch (createInfo.transfer)
 	{

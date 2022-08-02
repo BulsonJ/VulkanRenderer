@@ -92,7 +92,7 @@ void Renderer::initShaderData()
 void Renderer::drawObjects(VkCommandBuffer cmd)
 {	
 	ZoneScoped;
-	const int COUNT = renderObjects.size();
+	const int COUNT = static_cast<int>(renderObjects.size());
 	const RenderObject* FIRST = renderObjects.data();
 
 	// fill buffers
@@ -140,6 +140,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
 
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipeline);
+
+			lastMaterialType = currentMaterialType;
 		}
 
 		const GPUPushConstants constants = {
@@ -260,7 +262,7 @@ void Renderer::draw()
 		nullptr,
 		0,
 		nullptr,
-		std::size(initialBarriers),
+		static_cast<uint32_t>(std::size(initialBarriers)),
 		initialBarriers
 	);
 
@@ -842,7 +844,6 @@ void Renderer::initShaders()
 	ZoneScoped;
 
 	// create descriptor pool
-
 	VkDescriptorPoolSize poolSizes[] =
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
@@ -881,7 +882,7 @@ void Renderer::initShaders()
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo globalBindingFlags{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-		.bindingCount = std::size(flags),
+		.bindingCount = static_cast<uint32_t>(std::size(flags)),
 		.pBindingFlags = flags,
 	};
 
@@ -897,7 +898,7 @@ void Renderer::initShaders()
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		.pNext = &globalBindingFlags,
 		.flags = 0,
-		.bindingCount = std::size(globalBindings),
+		.bindingCount = static_cast<uint32_t>(std::size(globalBindings)),
 		.pBindings = globalBindings,
 	};
 
@@ -908,7 +909,7 @@ void Renderer::initShaders()
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		.pNext = nullptr,
 		.flags = 0,
-		.bindingCount = std::size(sceneBindings),
+		.bindingCount = static_cast<uint32_t>(std::size(sceneBindings)),
 		.pBindings = sceneBindings,
 	};
 
@@ -970,11 +971,11 @@ void Renderer::initShaders()
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frame[i].globalSet, &globalBuffers[2], 2),
 			VulkanInit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_SAMPLER, frame[i].globalSet, &samplerDescInfo, 3)
 		};
-		vkUpdateDescriptorSets(device, std::size(globalWrites), globalWrites, 0, nullptr);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(std::size(globalWrites)), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frame[i].sceneSet, &sceneBuffers[0], 0)
 		};
-		vkUpdateDescriptorSets(device, std::size(sceneWrites), sceneWrites, 0, nullptr);
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(std::size(sceneWrites)), sceneWrites, 0, nullptr);
 	}
 
 	// set up push constants
@@ -998,7 +999,7 @@ void Renderer::initShaders()
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
 		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(device, fileLoc.c_str());
 		assert(shader.has_value());
-		LOG_CORE_INFO("Triangle fragment shader successfully loaded" + fileLoc);
+		LOG_CORE_INFO("Shader successfully loaded" + fileLoc);
 		return shader.value();
 	};
 
@@ -1101,9 +1102,9 @@ void Renderer::loadImages()
 		VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = frame[i].globalSet,
-			.dstBinding = 4,    // We're updating binding 1, which is the one with the VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT and VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT flags from the above example
-			.dstArrayElement = 0,   // Start at array index 0
-			.descriptorCount = std::size(image_infos),   // Write two textures to this descriptor
+			.dstBinding = 4,  
+			.dstArrayElement = 0, 
+			.descriptorCount = static_cast<uint32_t>(std::size(image_infos)),
 			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 			.pImageInfo = image_infos,
 		};
