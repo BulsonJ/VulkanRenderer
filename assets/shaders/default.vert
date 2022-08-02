@@ -7,6 +7,7 @@ layout (location = 3) in vec2 vTexCoord;
 
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec2 outTexCoords;
+layout (location = 2) out flat int outDrawDataIndex;
 
 layout( push_constant ) uniform constants
 {
@@ -23,8 +24,7 @@ struct ObjectData{
 };
 
 struct MaterialData{
-	int transformIndex;
-	int materialIndex;
+	ivec4 diffuseIndex;
 };
 
 layout(std140,set = 0, binding = 0) readonly buffer DrawDataBuffer{
@@ -53,4 +53,5 @@ void main(void)		{
 	gl_Position = transformMatrix * vec4(vPosition, 1.0f);
 	outColor = vColor;
 	outTexCoords = vTexCoord;
+	outDrawDataIndex = pushConstants.drawDataIndex;
 }

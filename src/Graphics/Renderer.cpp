@@ -98,19 +98,36 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
 	GPUDrawData* drawDataSSBO = (GPUDrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
+	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
+	GPUMaterialData* materialSSBO = (GPUMaterialData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
+
 	for (int i = 0; i < COUNT; ++i)
 	{
 		const RenderObject& object = FIRST[i];
+
+		drawDataSSBO[i].transformIndex = i;
+		drawDataSSBO[i].materialIndex = i;
 
 		const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, object.translation)
 			* glm::toMat4(glm::quat(object.rotation))
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
 		objectSSBO[i].modelMatrix = modelMatrix;
 
-		drawDataSSBO[i].transformIndex = i;
-		drawDataSSBO[i].materialIndex = 1;
+		if (i == 0)
+		{
+			materialSSBO[i] = GPUMaterialData{
+				.diffuseIndex = {-1,0,0,0} 
+			};
+
+		}
+		else
+		{
+			materialSSBO[i] = {
+				.diffuseIndex = {i - 1,0,0,0},
+			};
+		}
+
 	}
 	// binding 1
 		//slot 0 - camera
@@ -1028,10 +1045,6 @@ void Renderer::loadMeshes()
 	RenderObject triangleObject{
 		.mesh = &meshes["triangleMesh"],
 	};
-	triangleObject.translation = { 0.5f,0.0f,1.0f };
-	renderObjects.push_back(triangleObject);
-	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
-	renderObjects.push_back(triangleObject);
 
 	if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
 	{
@@ -1043,6 +1056,12 @@ void Renderer::loadMeshes()
 		};
 		renderObjects.push_back(monkeyObject);
 	}
+
+	triangleObject.translation = { 0.5f,0.0f,1.0f };
+	renderObjects.push_back(triangleObject);
+
+	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
+	renderObjects.push_back(triangleObject);
 }
 
 void Renderer::loadImages()
@@ -1051,13 +1070,14 @@ void Renderer::loadImages()
 	CPUImage test;
 	ImageUtil::LoadImageFromFile("../../assets/textures/default.png", test);
 	bindlessImages[0] = uploadImage(test);
-	//ImageUtil::LoadImageFromFile("../../assets/textures/textureTest.png", test);
-	//bindlessImages[1] = uploadImage(test);
+	CPUImage test2;
+	ImageUtil::LoadImageFromFile("../../assets/textures/texture.jpg", test2);
+	bindlessImages[1] = uploadImage(test2);
 
 
 	VkDescriptorImageInfo image_infos[] = {
 		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
-		//{.imageView = ResourceManager::ptr->GetImage(bindlessImages[1]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[1]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
 	};
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)

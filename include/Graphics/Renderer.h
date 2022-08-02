@@ -34,11 +34,12 @@ struct GPUDrawData
 
 struct GPUMaterialData
 {
-	int diffuseIndex = {-1};
-	glm::vec4 ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
-	float shininess = { 32.0f };
+	// TODO: Figure out padding/alignment
+	//glm::vec4 ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	//glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
+	//float shininess = { 32.0f };
+	glm::ivec4 diffuseIndex;
 };
 
 struct GPUTransform
