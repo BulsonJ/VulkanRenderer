@@ -6,55 +6,8 @@
 
 #include "Log.h"
 
-VertexInputDescription Vertex::getVertexDescription()
-{
-	VertexInputDescription description;
-
-	const VkVertexInputBindingDescription mainBinding = {
-		.binding = 0,
-		.stride = sizeof(Vertex),
-		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-	};
-
-	description.bindings.push_back(mainBinding);
-
-	const VkVertexInputAttributeDescription positionAttribute = {
-		.location = 0,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(Vertex, position),
-	};
-
-	const VkVertexInputAttributeDescription normalAttribute = {
-		.location = 1,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(Vertex, normal),
-	};
-
-	const VkVertexInputAttributeDescription colorAttribute = {
-		.location = 2,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(Vertex, color),
-	};
-
-	const VkVertexInputAttributeDescription uvAttribute = {
-		.location = 3,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32_SFLOAT,
-		.offset = offsetof(Vertex, uv),
-	};
-
-	description.attributes.push_back(positionAttribute);
-	description.attributes.push_back(normalAttribute);
-	description.attributes.push_back(colorAttribute);
-	description.attributes.push_back(uvAttribute);
-	return description;
-}
-
-Mesh Mesh::GenerateTriangle() {
-	Mesh triangleMesh;
+EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateTriangle() {
+	EngineTypes::MeshDesc triangleMesh;
 
 	triangleMesh.vertices.resize(3);
 
@@ -77,8 +30,8 @@ Mesh Mesh::GenerateTriangle() {
 	return triangleMesh;
 }
 
-Mesh Mesh::GenerateQuad() {
-	Mesh mesh;
+EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateQuad() {
+	EngineTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4);
 
@@ -113,8 +66,8 @@ Mesh Mesh::GenerateQuad() {
 	return mesh;
 }
 
-Mesh Mesh::GenerateCube() {
-	Mesh mesh;
+EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateCube() {
+	EngineTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4*6);
 
@@ -212,8 +165,8 @@ Mesh Mesh::GenerateCube() {
 	return mesh;
 }
 
-Mesh Mesh::GenerateSkyboxCube() {
-	Mesh mesh;
+EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateSkyboxCube() {
+	EngineTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4 * 6);
 
@@ -311,8 +264,8 @@ Mesh Mesh::GenerateSkyboxCube() {
 	return mesh;
 }
 
-Mesh Mesh::GeneratePlane(int size) {
-	Mesh mesh;
+EngineTypes::MeshDesc EngineTypes::MeshDesc::GeneratePlane(int size) {
+	EngineTypes::MeshDesc mesh;
 
 	const int meshSize = size + 1;
 	mesh.vertices.resize(meshSize * meshSize);
@@ -353,14 +306,14 @@ Mesh Mesh::GeneratePlane(int size) {
 	return mesh;
 }
 
-bool Mesh::hasIndices() const {
+bool EngineTypes::MeshDesc::hasIndices() const {
 	if (this->indices.size() > 0) {
 		return true;
 	}
 	return false;
 }
 
-bool Mesh::loadFromObj(const char* filename)
+bool EngineTypes::MeshDesc::loadFromObj(const char* filename)
 {
 	//attrib will contain the vertex arrays of the file
 	tinyobj::attrib_t attrib;

@@ -13,11 +13,16 @@
 #include "ResourceManager.h"
 #include "Mesh.h"
 #include "DeletionQueue.h"
-#include "EngineTypes.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
+
+namespace EngineTypes
+{
+	struct MeshDesc;
+	struct RenderObject;
+}
 
 struct CPUImage;
 
@@ -52,6 +57,23 @@ struct GPUCameraData
 {
 	glm::mat4 view{};
 	glm::mat4 proj{};
+};
+
+struct VertexInputDescription
+{
+	std::vector<VkVertexInputBindingDescription> bindings;
+	std::vector<VkVertexInputAttributeDescription> attributes;
+
+	VkPipelineVertexInputStateCreateFlags flags = 0;
+};
+
+struct RenderMesh
+{
+	EngineTypes::MeshDesc meshDesc;
+	Handle<Buffer> vertexBuffer;
+	Handle<Buffer> indexBuffer;
+
+	static VertexInputDescription getVertexDescription();
 };
 
 struct MaterialType
@@ -91,7 +113,9 @@ class Renderer
 public:
 	void init();
 	void deinit();
-	void draw(const std::vector<RenderObject>& renderObjects);
+	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
+
+	uint32_t uploadMesh(EngineTypes::MeshDesc& mesh);
 
 	RenderTypes::WindowContext window;
 private:
@@ -115,9 +139,8 @@ private:
 
 	void initShaderData();
 
-	void drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>& renderObjects);
+	void drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::RenderObject>& renderObjects);
 
-	void uploadMesh(Mesh& mesh);
 	Handle<Image> uploadImage(CPUImage& image);
 
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
@@ -158,7 +181,7 @@ private:
 
 	GPUCameraData camera;
 
-	std::unordered_map<std::string, Mesh> meshes;
+	Slotmap<RenderMesh> meshes;
 	//std::unordered_map<std::string, Handle<Image>> images;
 	std::unordered_map<std::string, MaterialType> materials;
 

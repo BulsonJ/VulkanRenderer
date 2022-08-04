@@ -27,6 +27,7 @@
 #include "Image.h"
 #include "Editor.h"
 #include "Log.h"
+#include "EngineTypes.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -90,11 +91,11 @@ void Renderer::initShaderData()
 			UP_DIR);
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::RenderObject>& renderObjects)
 {	
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const RenderObject* FIRST = renderObjects.data();
+	const EngineTypes::RenderObject* FIRST = renderObjects.data();
 
 	// fill buffers
 	// binding 0
@@ -105,7 +106,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>&
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const RenderObject& object = FIRST[i];
+		const EngineTypes::RenderObject& object = FIRST[i];
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -129,10 +130,10 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>&
 	*cameraSSBO = camera;
 
 	const MaterialType* lastMaterialType = nullptr;
-	const Mesh* lastMesh = nullptr;
+	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const RenderObject& object = FIRST[i];
+		const EngineTypes::RenderObject& object = FIRST[i];
 
 		// TODO : RenderObjects hold material handle for different materials
 		const MaterialType* currentMaterialType{ &materials["defaultMaterial"] };
@@ -151,14 +152,16 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>&
 		};
 		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
-		// TODO : Split mesh from Renderer and give RenderObjects meshHandles
-		const Mesh* currentMesh { &meshes[object.meshName]};
+		// TODO : Find better way of handling mesh handle
+		// Currently having to recreate handle which is not good.
+		const RenderMesh* currentMesh { &meshes.get(Handle<RenderMesh>(object.mesh))};
+		const EngineTypes::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
 			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer).buffer;
 			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
-			if (currentMesh->hasIndices())
+			if (currentMeshDesc->hasIndices())
 			{
 				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer).buffer;
 				vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
@@ -166,18 +169,18 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>&
 			lastMesh = currentMesh;
 		}
 
-		if (currentMesh->hasIndices())
+		if (currentMeshDesc->hasIndices())
 		{
-			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(currentMesh->indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(cmd, static_cast<uint32_t>(currentMeshDesc->indices.size()), 1, 0, 0, 0);
 		}
 		else
 		{
-			vkCmdDraw(cmd, static_cast<uint32_t>(currentMesh->vertices.size()), 1, 0, 0);
+			vkCmdDraw(cmd, static_cast<uint32_t>(currentMeshDesc->vertices.size()), 1, 0, 0);
 		}
 	}
 }
 
-void Renderer::draw(const std::vector<RenderObject>& renderObjects) 
+void Renderer::draw(const std::vector<EngineTypes::RenderObject>& renderObjects)
 {
 	ZoneScoped;
 
@@ -1010,7 +1013,7 @@ void Renderer::initShaders()
 	VkShaderModule fragShader = shaderLoadFunc((std::string)"../../assets/shaders/default.frag.spv");
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
-	VertexInputDescription vertexDescription = Vertex::getVertexDescription();
+	VertexInputDescription vertexDescription = RenderMesh::getVertexDescription();
 	vertexInputInfo.pVertexAttributeDescriptions = vertexDescription.attributes.data();
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDescription.attributes.size());
 	vertexInputInfo.pVertexBindingDescriptions = vertexDescription.bindings.data();
@@ -1039,15 +1042,15 @@ void Renderer::initShaders()
 
 void Renderer::loadMeshes()
 {
-	ZoneScoped;
-	meshes["triangleMesh"] = Mesh::GenerateTriangle();
-	uploadMesh(meshes["triangleMesh"]);
-
-	if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
-	{
-		meshes["fileMesh"] = fileMesh;
-		uploadMesh(meshes["fileMesh"]);
-	}
+	//ZoneScoped;
+	//meshes["triangleMesh"] = Mesh::GenerateTriangle();
+	//uploadMesh(meshes["triangleMesh"]);
+	//
+	//if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
+	//{
+	//	meshes["fileMesh"] = fileMesh;
+	//	uploadMesh(meshes["fileMesh"]);
+	//}
 }
 
 void Renderer::loadImages()
@@ -1171,12 +1174,14 @@ void Renderer::deinit()
 	SDL_DestroyWindow(window.window);
 }
 
-void Renderer::uploadMesh(Mesh& mesh)
+uint32_t Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
 {
 	ZoneScoped;
 	LOG_CORE_INFO("Mesh Uploaded");
+	RenderMesh renderMesh;
+	renderMesh.meshDesc = mesh;
 	{
-		const size_t bufferSize = mesh.vertices.size() * sizeof(Vertex);
+		const size_t bufferSize = mesh.vertices.size() * sizeof(EngineTypes::Vertex);
 
 		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1186,14 +1191,14 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.vertices.data(), bufferSize);
 
-		mesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		renderMesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::VERTEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
 		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.vertexBuffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(renderMesh.vertexBuffer);
 
 		immediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
@@ -1206,10 +1211,10 @@ void Renderer::uploadMesh(Mesh& mesh)
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 
-	if (!mesh.hasIndices()) return;
+	if (!mesh.hasIndices()) return meshes.add(renderMesh).slot;
 
 	{
-		const size_t bufferSize = mesh.indices.size() * sizeof(Mesh::Index);
+		const size_t bufferSize = mesh.indices.size() * sizeof(EngineTypes::MeshDesc::Index);
 
 		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1219,14 +1224,14 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.indices.data(), bufferSize);
 
-		mesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		renderMesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
 
 		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(mesh.indexBuffer);
+		const Buffer dst = ResourceManager::ptr->GetBuffer(renderMesh.indexBuffer);
 
 		immediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
@@ -1238,6 +1243,8 @@ void Renderer::uploadMesh(Mesh& mesh)
 
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
+
+	return meshes.add(renderMesh).slot;
 }
 
 Handle<Image> Renderer::uploadImage(CPUImage& image)
@@ -1336,3 +1343,49 @@ void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& functi
 	vkResetCommandPool(device, uploadContext.commandPool, 0);
 }
 
+VertexInputDescription RenderMesh::getVertexDescription()
+{
+	VertexInputDescription description;
+
+	const VkVertexInputBindingDescription mainBinding = {
+		.binding = 0,
+		.stride = sizeof(EngineTypes::Vertex),
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+	};
+
+	description.bindings.push_back(mainBinding);
+
+	const VkVertexInputAttributeDescription positionAttribute = {
+		.location = 0,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(EngineTypes::Vertex, position),
+	};
+
+	const VkVertexInputAttributeDescription normalAttribute = {
+		.location = 1,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(EngineTypes::Vertex, normal),
+	};
+
+	const VkVertexInputAttributeDescription colorAttribute = {
+		.location = 2,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(EngineTypes::Vertex, color),
+	};
+
+	const VkVertexInputAttributeDescription uvAttribute = {
+		.location = 3,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32_SFLOAT,
+		.offset = offsetof(EngineTypes::Vertex, uv),
+	};
+
+	description.attributes.push_back(positionAttribute);
+	description.attributes.push_back(normalAttribute);
+	description.attributes.push_back(colorAttribute);
+	description.attributes.push_back(uvAttribute);
+	return description;
+}

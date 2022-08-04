@@ -11,6 +11,6 @@ public:
 	void deinit();
 private:
 	Renderer rend;
-	std::vector<RenderObject> renderObjects;
+	std::vector<EngineTypes::RenderObject> renderObjects;
 };
 
