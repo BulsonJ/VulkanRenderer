@@ -72,10 +72,7 @@ void Renderer::init()
 
 	initShaders();
 
-	loadMeshes();
 	loadImages();
-	setupScene();
-
 	initShaderData();
 
 }
@@ -154,7 +151,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 
 		// TODO : Find better way of handling mesh handle
 		// Currently having to recreate handle which is not good.
-		const RenderMesh* currentMesh { &meshes.get(Handle<RenderMesh>(object.mesh))};
+		const RenderMesh* currentMesh { &meshes.get(object.meshHandle)};
 		const EngineTypes::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
 		if (currentMesh != lastMesh)
 		{
@@ -1040,19 +1037,6 @@ void Renderer::initShaders()
 	vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
-void Renderer::loadMeshes()
-{
-	//ZoneScoped;
-	//meshes["triangleMesh"] = Mesh::GenerateTriangle();
-	//uploadMesh(meshes["triangleMesh"]);
-	//
-	//if (Mesh fileMesh; fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
-	//{
-	//	meshes["fileMesh"] = fileMesh;
-	//	uploadMesh(meshes["fileMesh"]);
-	//}
-}
-
 void Renderer::loadImages()
 {
 	ZoneScoped;
@@ -1092,37 +1076,6 @@ void Renderer::loadImages()
 		LOG_CORE_INFO("Bindless Texture Array Updated");
 	}
 
-}
-
-
-void Renderer::setupScene()
-{
-	//const MaterialInstance defaultMaterialInstance = {
-	//.matType = &materials["defaultMaterial"],
-	//.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
-	//};
-	//
-	//RenderObject triangleObject{
-	//	.mesh = &meshes["triangleMesh"],
-	//	.material = defaultMaterialInstance,
-	//};
-	//
-	//triangleObject.translation = { 0.5f,0.0f,1.0f };
-	//renderObjects.push_back(triangleObject);
-	//
-	//triangleObject.translation = { -1.0f,-0.0f,-1.0f };
-	//renderObjects.push_back(triangleObject);
-	//
-	//const MaterialInstance monkeyMaterialInstance = {
-	//	.matType = &materials["defaultMaterial"],
-	//	.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
-	//};
-	//
-	//const RenderObject monkeyObject{
-	//	.mesh = &meshes["fileMesh"],
-	//	.material = monkeyMaterialInstance
-	//};
-	//renderObjects.push_back(monkeyObject);
 }
 
 void Renderer::deinit() 
@@ -1174,12 +1127,10 @@ void Renderer::deinit()
 	SDL_DestroyWindow(window.window);
 }
 
-uint32_t Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
+Handle<RenderMesh> Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
 {
 	ZoneScoped;
-	LOG_CORE_INFO("Mesh Uploaded");
-	RenderMesh renderMesh;
-	renderMesh.meshDesc = mesh;
+	RenderMesh renderMesh {.meshDesc = mesh};
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(EngineTypes::Vertex);
 
@@ -1211,8 +1162,7 @@ uint32_t Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 
-	if (!mesh.hasIndices()) return meshes.add(renderMesh).slot;
-
+	if (mesh.hasIndices())
 	{
 		const size_t bufferSize = mesh.indices.size() * sizeof(EngineTypes::MeshDesc::Index);
 
@@ -1244,7 +1194,8 @@ uint32_t Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 
-	return meshes.add(renderMesh).slot;
+	LOG_CORE_INFO("Mesh Uploaded");
+	return meshes.add(renderMesh);
 }
 
 Handle<Image> Renderer::uploadImage(CPUImage& image)

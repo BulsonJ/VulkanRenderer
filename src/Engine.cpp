@@ -9,12 +9,15 @@ void Engine::init() {
 
 	Log::Init();
 	rend.init();
+	setupScene();
+}
 
+void Engine::setupScene() {
 	EngineTypes::MeshDesc triangleMeshDesc = EngineTypes::MeshDesc::GenerateTriangle();
-	uint32_t triangleMeshHandle = rend.uploadMesh(triangleMeshDesc);
+	Handle<RenderMesh> triangleMeshHandle = rend.uploadMesh(triangleMeshDesc);
 
 	EngineTypes::MeshDesc fileMesh;
-	uint32_t fileMeshHandle;
+	Handle<RenderMesh> fileMeshHandle;
 	if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
 	{
 		fileMeshHandle = rend.uploadMesh(fileMesh);
@@ -23,7 +26,7 @@ void Engine::init() {
 	for (int i = 0; i < 4; ++i)
 	{
 		const EngineTypes::RenderObject triangleObj{
-			.mesh = triangleMeshHandle,
+			.meshHandle = triangleMeshHandle,
 			.textureHandle = 0,
 			.translation = { 0.25f * i,0.0f,0.25f * i },
 		};
@@ -31,11 +34,12 @@ void Engine::init() {
 	}
 
 	const EngineTypes::RenderObject monkeyObject{
-		.mesh = fileMeshHandle,
+		.meshHandle = fileMeshHandle,
 		.textureHandle = -1,
 		.translation = { 0.0f,-0.5f,0.0f},
 	};
 	renderObjects.push_back(monkeyObject);
+	LOG_CORE_INFO("Scene setup.");
 }
 
 void Engine::run()

@@ -115,7 +115,7 @@ public:
 	void deinit();
 	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
 
-	uint32_t uploadMesh(EngineTypes::MeshDesc& mesh);
+	Handle<RenderMesh> uploadMesh(EngineTypes::MeshDesc& mesh);
 
 	RenderTypes::WindowContext window;
 private:
@@ -133,9 +133,7 @@ private:
 	void initImgui();
 	void initImguiRenderImages();
 	void initShaders();
-	void loadMeshes();
 	void loadImages();
-	void setupScene();
 
 	void initShaderData();
 
@@ -185,6 +183,5 @@ private:
 	//std::unordered_map<std::string, Handle<Image>> images;
 	std::unordered_map<std::string, MaterialType> materials;
 
-	//std::array<Handle<Image>, 32> bindlessImages;
 	Slotmap<Handle<Image>> bindlessImages;
 };

@@ -8,7 +8,7 @@ namespace EngineTypes
 {
 	struct RenderObject
 	{
-		uint32_t mesh;
+		Handle<RenderMesh> meshHandle;
 		int32_t textureHandle;
 
 		glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
