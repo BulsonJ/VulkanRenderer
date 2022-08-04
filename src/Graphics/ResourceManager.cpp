@@ -6,7 +6,7 @@ ResourceManager* ResourceManager::ptr = nullptr;
 
 ResourceManager::~ResourceManager()
 {
-	for (const auto& buffer : buffers)
+	for (const auto& buffer : buffers.array)
 	{
 		if (buffer.buffer != VK_NULL_HANDLE)
 		{
@@ -14,7 +14,7 @@ ResourceManager::~ResourceManager()
 		}
 	}
 
-	for (const auto& image : images)
+	for (const auto& image : images.array)
 	{
 		if (image.image != VK_NULL_HANDLE)
 		{
@@ -26,7 +26,7 @@ ResourceManager::~ResourceManager()
 
 Buffer ResourceManager::GetBuffer(const Handle<Buffer>& buffer)
 {
-	return buffers[buffer.slot];
+	return buffers.get(buffer);
 }
 
 Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
@@ -69,15 +69,14 @@ Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	newBuffer.ptr = allocInfo.pMappedData;
 	newBuffer.size = createInfo.size;
 
-	Handle<Buffer> newHandle = getNewBufferHandle();
-	buffers[newHandle.slot] = newBuffer;
+	Handle<Buffer> newHandle = buffers.add(newBuffer);
 
 	return newHandle;
 }
 
 void ResourceManager::DestroyBuffer(const Handle<Buffer>& buffer)
 {
-	Buffer& deleteBuffer = buffers[buffer.slot];
+	Buffer& deleteBuffer = buffers.get(buffer);
 	if (deleteBuffer.buffer != VK_NULL_HANDLE)
 	{
 		vmaDestroyBuffer(allocator, deleteBuffer.buffer, deleteBuffer.allocation);
@@ -120,20 +119,19 @@ Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 
 	vkCreateImageView(device, &imageinfo, nullptr, &newImage.imageView);
 
-	Handle<Image> newHandle = getNewImageHandle();
-	images[newHandle.slot] = newImage;
+	Handle<Image> newHandle = images.add(newImage);
 
 	return newHandle;
 }
 
 Image ResourceManager::GetImage(const Handle<Image>& image)
 {
-	return images[image.slot];
+	return images.get(image);
 }
 
 void ResourceManager::DestroyImage(const Handle<Image>& image)
 {
-	Image& deleteImage = images[image.slot];
+	Image& deleteImage = images.get(image);
 	if (deleteImage.image != VK_NULL_HANDLE)
 	{
 		vmaDestroyImage(allocator, deleteImage.image, deleteImage.allocation);

@@ -5,6 +5,7 @@
 #include <array>
 
 #include "Graphics/Common.h"
+#include "Structures/Slotmap.h"
 
 
 struct BufferCreateInfo
@@ -33,11 +34,6 @@ struct ImageCreateInfo
 		COLOR,
 		DEPTH
 	} usage;
-};
-
-template <typename T>
-struct Handle {
-	uint32_t slot;
 };
 
 struct Buffer
@@ -73,21 +69,7 @@ protected:
 	const VkDevice device;
 	const VmaAllocator allocator;
 
-	std::array<Buffer, 1024> buffers{VK_NULL_HANDLE};
-
-	uint32_t lastHandle{0};
-	[[nodiscard]] Handle<Buffer> getNewBufferHandle()
-	{
-		return Handle<Buffer>{++lastHandle};
-	}
-
-	std::array<Image, 1024> images{ VK_NULL_HANDLE };
-
-	uint32_t lastImageHandle{ 0 };
-	[[nodiscard]] Handle<Image> getNewImageHandle()
-	{
-		return Handle<Image>{++lastImageHandle};
-	}
-
+	Slotmap<Buffer> buffers;
+	Slotmap<Image> images;
 };
 

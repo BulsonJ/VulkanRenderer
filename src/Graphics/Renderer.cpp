@@ -1057,17 +1057,18 @@ void Renderer::loadImages()
 		"../../assets/textures/texture.jpg"
 	};
 
+	std::vector<Handle<Handle<Image>>> uploadedBindlessImages;
 	for (int i = 0; i < std::size(textures); ++i)
 	{
 		CPUImage img;
 		ImageUtil::LoadImageFromFile(textures[i].c_str(), img);
-		bindlessImages[i] = uploadImage(img);
+		uploadedBindlessImages.push_back(bindlessImages.add(uploadImage(img)));
 		LOG_CORE_INFO("Texture Uploaded: " + textures[i]);
 	}
 
 	VkDescriptorImageInfo image_infos[] = {
-		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[0]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
-		{.imageView = ResourceManager::ptr->GetImage(bindlessImages[1]).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
+		{.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(uploadedBindlessImages[0])).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+		{.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(uploadedBindlessImages[1])).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
 	};
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)

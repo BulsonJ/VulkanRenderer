@@ -174,5 +174,6 @@ private:
 
 	std::vector<RenderObject> renderObjects;
 
-	std::array<Handle<Image>, 32> bindlessImages;
+	//std::array<Handle<Image>, 32> bindlessImages;
+	Slotmap<Handle<Image>> bindlessImages;
 };
