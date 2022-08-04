@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Graphics/Renderer.h"
+#include "EngineTypes.h"
+
 class Engine
 {
 public:
@@ -9,5 +11,6 @@ public:
 	void deinit();
 private:
 	Renderer rend;
+	std::vector<RenderObject> renderObjects;
 };
 

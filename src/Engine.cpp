@@ -9,6 +9,23 @@ void Engine::init() {
 
 	Log::Init();
 	rend.init();
+
+	for (int i = 0; i < 4; ++i)
+	{
+		const RenderObject triangleObj{
+			.meshName = "triangleMesh",
+			.textureHandle = 0,
+			.translation = { 0.25f * i,0.0f,0.25f * i },
+		};
+		renderObjects.push_back(triangleObj);
+	}
+
+	const RenderObject monkeyObject{
+		.meshName = "fileMesh",
+		.textureHandle = -1,
+		.translation = { 0.0f,-0.5f,0.0f},
+	};
+	renderObjects.push_back(monkeyObject);
 }
 
 void Engine::run()
@@ -31,7 +48,7 @@ void Engine::run()
 				break;
 			}
 		}
-		rend.draw();
+		rend.draw(renderObjects);
 	}
 }
 

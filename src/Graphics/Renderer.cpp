@@ -90,7 +90,7 @@ void Renderer::initShaderData()
 			UP_DIR);
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>& renderObjects)
 {	
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
@@ -115,7 +115,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
 		objectSSBO[i].modelMatrix = modelMatrix;
 
-		materialSSBO[i] = object.material.materialData;
+		materialSSBO[i] = GPUMaterialData{ .diffuseIndex = {object.textureHandle, 0, 0, 0} };
 
 	}
 	// binding 1
@@ -134,7 +134,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	{
 		const RenderObject& object = FIRST[i];
 
-		const MaterialType* currentMaterialType{ object.material.matType };
+		// TODO : RenderObjects hold material handle for different materials
+		const MaterialType* currentMaterialType{ &materials["defaultMaterial"] };
 		if (currentMaterialType != lastMaterialType)
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
@@ -150,7 +151,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 		};
 		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
 
-		const Mesh* currentMesh { object.mesh };
+		// TODO : Split mesh from Renderer and give RenderObjects meshHandles
+		const Mesh* currentMesh { &meshes[object.meshName]};
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
@@ -175,7 +177,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd)
 	}
 }
 
-void Renderer::draw() 
+void Renderer::draw(const std::vector<RenderObject>& renderObjects) 
 {
 	ZoneScoped;
 
@@ -327,7 +329,7 @@ void Renderer::draw()
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
-	drawObjects(cmd);
+	drawObjects(cmd, renderObjects);
 
 	vkCmdEndRendering(cmd);
 
@@ -1092,32 +1094,32 @@ void Renderer::loadImages()
 
 void Renderer::setupScene()
 {
-	const MaterialInstance defaultMaterialInstance = {
-	.matType = &materials["defaultMaterial"],
-	.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
-	};
-
-	RenderObject triangleObject{
-		.mesh = &meshes["triangleMesh"],
-		.material = defaultMaterialInstance,
-	};
-
-	triangleObject.translation = { 0.5f,0.0f,1.0f };
-	renderObjects.push_back(triangleObject);
-
-	triangleObject.translation = { -1.0f,-0.0f,-1.0f };
-	renderObjects.push_back(triangleObject);
-
-	const MaterialInstance monkeyMaterialInstance = {
-		.matType = &materials["defaultMaterial"],
-		.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
-	};
-
-	const RenderObject monkeyObject{
-		.mesh = &meshes["fileMesh"],
-		.material = monkeyMaterialInstance
-	};
-	renderObjects.push_back(monkeyObject);
+	//const MaterialInstance defaultMaterialInstance = {
+	//.matType = &materials["defaultMaterial"],
+	//.materialData = GPUMaterialData{.diffuseIndex = {0,0,0,0}}
+	//};
+	//
+	//RenderObject triangleObject{
+	//	.mesh = &meshes["triangleMesh"],
+	//	.material = defaultMaterialInstance,
+	//};
+	//
+	//triangleObject.translation = { 0.5f,0.0f,1.0f };
+	//renderObjects.push_back(triangleObject);
+	//
+	//triangleObject.translation = { -1.0f,-0.0f,-1.0f };
+	//renderObjects.push_back(triangleObject);
+	//
+	//const MaterialInstance monkeyMaterialInstance = {
+	//	.matType = &materials["defaultMaterial"],
+	//	.materialData = GPUMaterialData{.diffuseIndex = {-1,0,0,0}}
+	//};
+	//
+	//const RenderObject monkeyObject{
+	//	.mesh = &meshes["fileMesh"],
+	//	.material = monkeyMaterialInstance
+	//};
+	//renderObjects.push_back(monkeyObject);
 }
 
 void Renderer::deinit() 

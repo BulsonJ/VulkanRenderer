@@ -13,6 +13,7 @@
 #include "ResourceManager.h"
 #include "Mesh.h"
 #include "DeletionQueue.h"
+#include "EngineTypes.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
@@ -66,17 +67,6 @@ struct MaterialInstance
 	GPUMaterialData materialData;
 };
 
-struct RenderObject
-{
-	Mesh* mesh;
-	MaterialInstance material = {};
-
-	glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
-
-};
-
 struct RenderFrame
 {
 	Handle<Image> renderImage;
@@ -101,7 +91,7 @@ class Renderer
 public:
 	void init();
 	void deinit();
-	void draw();
+	void draw(const std::vector<RenderObject>& renderObjects);
 
 	RenderTypes::WindowContext window;
 private:
@@ -125,7 +115,7 @@ private:
 
 	void initShaderData();
 
-	void drawObjects(VkCommandBuffer cmd);
+	void drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject>& renderObjects);
 
 	void uploadMesh(Mesh& mesh);
 	Handle<Image> uploadImage(CPUImage& image);
@@ -171,8 +161,6 @@ private:
 	std::unordered_map<std::string, Mesh> meshes;
 	//std::unordered_map<std::string, Handle<Image>> images;
 	std::unordered_map<std::string, MaterialType> materials;
-
-	std::vector<RenderObject> renderObjects;
 
 	//std::array<Handle<Image>, 32> bindlessImages;
 	Slotmap<Handle<Image>> bindlessImages;
