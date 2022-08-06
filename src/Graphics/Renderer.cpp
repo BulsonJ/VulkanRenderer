@@ -123,10 +123,11 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 	// binding 1
 		//slot 0 - camera
 	camera.view =
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-			glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::lookAt(glm::vec3(0.0f, 0.5f, 1.25f),
+			glm::vec3(0.0f, -0.5f, 0.0f),
 			UP_DIR);
-	camera.view = glm::rotate(camera.view, frameNumber / 120.0f, UP_DIR);
+	const float rotationSpeed = 0.5f;
+	camera.view = glm::rotate(camera.view, (frameNumber / 120.0f) * rotationSpeed, UP_DIR);
 	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
 	*cameraSSBO = camera;
 
