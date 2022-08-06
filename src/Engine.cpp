@@ -15,19 +15,21 @@ void Engine::init() {
 }
 
 void Engine::setupScene() {
-	EngineTypes::MeshDesc triangleMeshDesc = EngineTypes::MeshDesc::GenerateTriangle();
-	Handle<RenderMesh> triangleMeshHandle = rend.uploadMesh(triangleMeshDesc);
+	//EngineTypes::MeshDesc fileMesh;
+	//Handle<RenderMesh> fileMeshHandle {};
+	//if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
+	//{
+	//	fileMeshHandle = rend.uploadMesh(fileMesh);
+	//}
 
-	EngineTypes::MeshDesc fileMesh;
-	Handle<RenderMesh> fileMeshHandle {};
-	if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
-	{
-		fileMeshHandle = rend.uploadMesh(fileMesh);
-	}
+	EngineTypes::MeshDesc cubeMeshDesc = EngineTypes::MeshDesc::GenerateCube();
+	Handle<RenderMesh> cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
 
 	static const std::string texturePaths[] = {
 		"../../assets/textures/default.png",
-		"../../assets/textures/texture.jpg"
+		"../../assets/textures/texture.jpg",
+		"../../assets/textures/beehive/beehive_albedo.png",
+		"../../assets/textures/beehive/beehive_normal.png"
 	};
 
 	std::vector<Handle<Handle<Image>>> textures;
@@ -39,22 +41,14 @@ void Engine::setupScene() {
 		textures.push_back(texHandle);
 	}
 
-	for (int i = 0; i < 4; ++i)
-	{
-		const EngineTypes::RenderObject triangleObj{
-			.meshHandle = triangleMeshHandle,
-			.textureHandle = textures[0],
-			.translation = { 0.25f * i,0.0f,0.25f * i },
-		};
-		renderObjects.push_back(triangleObj);
-	}
-
-	const EngineTypes::RenderObject monkeyObject{
-		.meshHandle = fileMeshHandle,
-		//.textureHandle = textures[1],
+	const EngineTypes::RenderObject materialTestObject{
+		.meshHandle = cubeMeshHandle,
+		.textureHandle = textures[2],
 		.translation = { 0.0f,-0.5f,0.0f},
 	};
-	renderObjects.push_back(monkeyObject);
+	renderObjects.push_back(materialTestObject);
+
+
 	LOG_CORE_INFO("Scene setup.");
 }
 

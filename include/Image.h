@@ -6,7 +6,7 @@ namespace EngineTypes
 	{
 		~Texture();
 
-		void* ptr;
+		void* ptr = nullptr;
 		int texWidth;
 		int texHeight;
 		int texChannels;

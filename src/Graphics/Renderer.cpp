@@ -1163,6 +1163,10 @@ Handle<RenderMesh> Renderer::uploadMesh(const EngineTypes::MeshDesc& mesh)
 
 Handle<Handle<Image>> Renderer::uploadTexture(const EngineTypes::Texture& texture)
 {
+	if (texture.ptr == nullptr)
+	{
+		return Handle<Handle<Image>>(0);
+	}
 	Handle<Image> newTextureHandle = uploadTextureInternal(texture);
 	Handle<Handle<Image>> bindlessHandle = bindlessImages.add(newTextureHandle);
 
