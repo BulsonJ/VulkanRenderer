@@ -44,6 +44,7 @@ void Engine::setupScene() {
 	const EngineTypes::RenderObject materialTestObject{
 		.meshHandle = cubeMeshHandle,
 		.textureHandle = textures[2],
+		.normalHandle = textures[3],
 		.translation = { 0.0f,-0.5f,0.0f},
 	};
 	renderObjects.push_back(materialTestObject);

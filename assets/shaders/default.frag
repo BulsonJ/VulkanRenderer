@@ -13,7 +13,7 @@ struct DrawData{
 };
 
 struct MaterialData{
-	ivec4 diffuseIndex;
+	ivec4 textureIndex;
 };
 
 layout(std140,set = 0, binding = 0) readonly buffer DrawDataBuffer{
@@ -30,11 +30,15 @@ layout (set = 0, binding = 4) uniform texture2D bindlessTextures[];
 void main(void)	{
 	DrawData draw = drawDataArray.objects[inDrawDataIndex];
 	MaterialData matData = materialDataArray.objects[draw.materialIndex];
-	int diffuseIndex = matData.diffuseIndex.x;
+	int diffuseIndex = matData.textureIndex.x;
+	int normalIndex = matData.textureIndex.y;
 
 	vec4 diffuse = vec4(inColor,1.0);
 	if (diffuseIndex >= 0){
 		diffuse = texture(sampler2D(bindlessTextures[(nonuniformEXT(diffuseIndex))], samp), inTexCoords);
+	}
+	if (normalIndex >= 0){
+		diffuse = texture(sampler2D(bindlessTextures[(nonuniformEXT(normalIndex))], samp), inTexCoords);
 	}
 	outFragColor = diffuse;
 }

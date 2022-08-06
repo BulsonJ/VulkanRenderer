@@ -11,6 +11,7 @@ namespace EngineTypes
 	{
 		Handle<RenderMesh> meshHandle;
 		std::optional<Handle<Handle<Image>>> textureHandle = {};
+		std::optional<Handle<Handle<Image>>> normalHandle = {};
 
 		glm::vec3 translation = { 0.0f, 0.0f, 0.0f };
 		glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };

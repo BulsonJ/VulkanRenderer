@@ -114,7 +114,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 
 		materialSSBO[i] = GPUMaterialData{ 
 			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value().slot : -1,
-							0,
+							object.normalHandle.has_value() ? object.normalHandle.value().slot : -1,
 							0,
 							0} 
 		};
