@@ -72,7 +72,6 @@ void Renderer::init()
 
 	initShaders();
 
-	loadImages();
 	initShaderData();
 
 }
@@ -113,7 +112,12 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
 		objectSSBO[i].modelMatrix = modelMatrix;
 
-		materialSSBO[i] = GPUMaterialData{ .diffuseIndex = {object.textureHandle, 0, 0, 0} };
+		materialSSBO[i] = GPUMaterialData{ 
+			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value().slot : -1,
+							0,
+							0,
+							0} 
+		};
 
 	}
 	// binding 1
@@ -1037,47 +1041,6 @@ void Renderer::initShaders()
 	vkDestroyShaderModule(device, fragShader, nullptr);
 }
 
-void Renderer::loadImages()
-{
-	ZoneScoped;
-
-	static const std::string textures[] = {
-		"../../assets/textures/default.png",
-		"../../assets/textures/texture.jpg"
-	};
-
-	std::vector<Handle<Handle<Image>>> uploadedBindlessImages;
-	for (int i = 0; i < std::size(textures); ++i)
-	{
-		CPUImage img;
-		ImageUtil::LoadImageFromFile(textures[i].c_str(), img);
-		uploadedBindlessImages.push_back(bindlessImages.add(uploadImage(img)));
-		LOG_CORE_INFO("Texture Uploaded: " + textures[i]);
-	}
-
-	VkDescriptorImageInfo image_infos[] = {
-		{.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(uploadedBindlessImages[0])).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
-		{.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(uploadedBindlessImages[1])).imageView,.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}
-	};
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		VkWriteDescriptorSet write{
-			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			.dstSet = frame[i].globalSet,
-			.dstBinding = 4,  
-			.dstArrayElement = 0, 
-			.descriptorCount = static_cast<uint32_t>(std::size(image_infos)),
-			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-			.pImageInfo = image_infos,
-		};
-
-		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
-		LOG_CORE_INFO("Bindless Texture Array Updated");
-	}
-
-}
-
 void Renderer::deinit() 
 {
 	ZoneScoped;
@@ -1127,7 +1090,7 @@ void Renderer::deinit()
 	SDL_DestroyWindow(window.window);
 }
 
-Handle<RenderMesh> Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
+Handle<RenderMesh> Renderer::uploadMesh(const EngineTypes::MeshDesc& mesh)
 {
 	ZoneScoped;
 	RenderMesh renderMesh {.meshDesc = mesh};
@@ -1198,7 +1161,37 @@ Handle<RenderMesh> Renderer::uploadMesh(EngineTypes::MeshDesc& mesh)
 	return meshes.add(renderMesh);
 }
 
-Handle<Image> Renderer::uploadImage(CPUImage& image)
+Handle<Handle<Image>> Renderer::uploadTexture(const EngineTypes::Texture& texture)
+{
+	Handle<Image> newTextureHandle = uploadTextureInternal(texture);
+	Handle<Handle<Image>> bindlessHandle = bindlessImages.add(newTextureHandle);
+
+	VkDescriptorImageInfo bindlessImageInfo = {
+		.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(bindlessHandle)).imageView,
+		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	};
+
+	for (int i = 0; i < FRAME_OVERLAP; ++i)
+	{
+		VkWriteDescriptorSet write{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = frame[i].globalSet,
+			.dstBinding = 4,
+			.dstArrayElement = bindlessHandle.slot,
+			.descriptorCount = static_cast<uint32_t>(1),
+			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			.pImageInfo = &bindlessImageInfo,
+		};
+
+		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	}
+
+	LOG_CORE_INFO("Texture Uploaded: ");
+
+	return bindlessHandle;
+}
+
+Handle<Image> Renderer::uploadTextureInternal(const EngineTypes::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
 	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };

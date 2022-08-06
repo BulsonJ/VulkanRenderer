@@ -8,12 +8,12 @@
 #include <public/tracy/Tracy.hpp>
 #include "Log.h"
 
-CPUImage::~CPUImage()
+EngineTypes::Texture::~Texture()
 {
 	stbi_image_free(this->ptr);
 }
 
-void ImageUtil::LoadImageFromFile(const char* file, CPUImage& outImage)
+void EngineTypes::TextureUtil::LoadTextureFromFile(const char* file, EngineTypes::Texture& outImage)
 {
 	ZoneScoped;
 

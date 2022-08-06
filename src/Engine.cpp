@@ -2,7 +2,9 @@
 #include <SDL.h>
 #include <public/tracy/Tracy.hpp>
 #include <backends/imgui_impl_sdl.h>
+
 #include "Log.h"
+#include "Image.h"
 
 void Engine::init() {
 	ZoneScoped;
@@ -17,17 +19,31 @@ void Engine::setupScene() {
 	Handle<RenderMesh> triangleMeshHandle = rend.uploadMesh(triangleMeshDesc);
 
 	EngineTypes::MeshDesc fileMesh;
-	Handle<RenderMesh> fileMeshHandle;
+	Handle<RenderMesh> fileMeshHandle {};
 	if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
 	{
 		fileMeshHandle = rend.uploadMesh(fileMesh);
+	}
+
+	static const std::string texturePaths[] = {
+		"../../assets/textures/default.png",
+		"../../assets/textures/texture.jpg"
+	};
+
+	std::vector<Handle<Handle<Image>>> textures;
+	for (int i = 0; i < std::size(texturePaths); ++i)
+	{
+		EngineTypes::Texture img;
+		EngineTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].c_str(), img);
+		Handle<Handle<Image>> texHandle = rend.uploadTexture(img);
+		textures.push_back(texHandle);
 	}
 
 	for (int i = 0; i < 4; ++i)
 	{
 		const EngineTypes::RenderObject triangleObj{
 			.meshHandle = triangleMeshHandle,
-			.textureHandle = 0,
+			.textureHandle = textures[0],
 			.translation = { 0.25f * i,0.0f,0.25f * i },
 		};
 		renderObjects.push_back(triangleObj);
@@ -35,7 +51,7 @@ void Engine::setupScene() {
 
 	const EngineTypes::RenderObject monkeyObject{
 		.meshHandle = fileMeshHandle,
-		.textureHandle = -1,
+		//.textureHandle = textures[1],
 		.translation = { 0.0f,-0.5f,0.0f},
 	};
 	renderObjects.push_back(monkeyObject);

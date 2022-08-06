@@ -22,6 +22,7 @@ namespace EngineTypes
 {
 	struct MeshDesc;
 	struct RenderObject;
+	struct Texture;
 }
 
 struct CPUImage;
@@ -115,7 +116,8 @@ public:
 	void deinit();
 	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
 
-	Handle<RenderMesh> uploadMesh(EngineTypes::MeshDesc& mesh);
+	Handle<RenderMesh> uploadMesh(const EngineTypes::MeshDesc& mesh);
+	Handle<Handle<Image>> uploadTexture(const EngineTypes::Texture& texture);
 
 	RenderTypes::WindowContext window;
 private:
@@ -133,13 +135,12 @@ private:
 	void initImgui();
 	void initImguiRenderImages();
 	void initShaders();
-	void loadImages();
 
 	void initShaderData();
 
 	void drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::RenderObject>& renderObjects);
 
-	Handle<Image> uploadImage(CPUImage& image);
+	Handle<Image> uploadTextureInternal(const EngineTypes::Texture& image);
 
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 

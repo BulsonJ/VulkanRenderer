@@ -1,17 +1,20 @@
 #pragma once
 
-struct CPUImage
+namespace EngineTypes
 {
-	~CPUImage();
+	struct Texture
+	{
+		~Texture();
 
-	void* ptr;
-	int texWidth;
-	int texHeight;
-	int texChannels;
-};
+		void* ptr;
+		int texWidth;
+		int texHeight;
+		int texChannels;
+	};
 
-namespace ImageUtil
-{
-	void LoadImageFromFile(const char* file, CPUImage& outImage);
+	namespace TextureUtil
+	{
+		void LoadTextureFromFile(const char* file, Texture& outImage);
+	}
 }
 

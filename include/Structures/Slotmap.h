@@ -19,9 +19,14 @@ public:
 	// TODO: make private
 	std::array<T, 1024> array;
 private:
-	uint32_t lastHandle{ 0 };
+	bool first{ true };
+	uint32_t lastHandle{ 0U };
 	[[nodiscard]] Handle<T> getNewHandle()
 	{
+		if (first) { 
+			first = false;
+			return Handle<T>{lastHandle};
+		}
 		return Handle<T>{++lastHandle};
 	}
 };
