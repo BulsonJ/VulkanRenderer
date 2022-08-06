@@ -114,8 +114,8 @@ class Renderer
 public:
 	void init();
 	void deinit();
-	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
 
+	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
 	Handle<RenderMesh> uploadMesh(const EngineTypes::MeshDesc& mesh);
 	Handle<Handle<Image>> uploadTexture(const EngineTypes::Texture& texture);
 

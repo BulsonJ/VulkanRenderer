@@ -2,7 +2,18 @@
 
 #include <array>
 
+/*
+Might be best to not use templated handles in the future.
 
+Leads to verbosity and although I like it more when known types are used, means that other classes
+need to know struct stored in slotmap to access it.
+
+For example, Engine needs to know Handle<Handle<Image>> for a texture.
+1. Very verbose, could be slimmed down to ShaderTextureHandle on Engine side(or something similar)
+	- Maybe split into TextureHandle and ShaderTextureHandle
+	- Find way for both to be the same?
+2. Engine has to know what an Image is to use the Handle(means Image struct has to be exposed which exposes Vulkan)
+*/
 template <typename T>
 struct Handle
 {
