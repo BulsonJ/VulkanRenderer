@@ -8,7 +8,6 @@
 #include <imgui.h>
 #include <unordered_map>
 
-#include "RenderTypes.h"
 #include "PipelineBuilder.h"
 #include "ResourceManager.h"
 #include "Mesh.h"
@@ -18,6 +17,48 @@
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
+
+struct SDL_Window;
+
+namespace RenderTypes
+{
+	struct WindowContext
+	{
+		SDL_Window* window = { nullptr };
+		VkExtent2D extent = { 1920 , 1080 };
+		bool resized{ false };
+	};
+
+	struct CommandContext
+	{
+		VkCommandPool pool;
+		VkCommandBuffer buffer;
+	};
+
+	template<uint32_t FRAMES>
+	struct QueueContext
+	{
+		VkQueue queue;
+		uint32_t queueFamily;
+		CommandContext commands[FRAMES];
+	};
+
+	struct UploadContext
+	{
+		VkFence uploadFence;
+		VkCommandPool commandPool;
+		VkCommandBuffer commandBuffer;
+	};
+
+	struct Swapchain
+	{
+		VkSwapchainKHR swapchain;
+		VkFormat imageFormat;
+		std::vector<VkImage> images;
+		std::vector<VkImageView> imageViews;
+		std::vector<VkFramebuffer> framebuffers;
+	};
+}
 
 struct GPUPushConstants
 {
