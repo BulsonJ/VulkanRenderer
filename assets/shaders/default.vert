@@ -7,7 +7,9 @@ layout (location = 3) in vec2 vTexCoord;
 
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec2 outTexCoords;
-layout (location = 2) out flat int outDrawDataIndex;
+layout (location = 2) out vec3 outNormal;
+layout (location = 3) out vec3 outWorldPos;
+layout (location = 4) out flat int outDrawDataIndex;
 
 layout( push_constant ) uniform constants
 {
@@ -42,6 +44,7 @@ layout(std140,set = 0, binding = 2) readonly buffer MaterialDataBuffer{
 layout(std140,set = 1, binding = 0) uniform  CameraBuffer{
 	mat4 viewMatrix;
 	mat4 projMatrix;
+	vec4 cameraPos;
 } cameraData;
 
 void main(void)		{
@@ -50,8 +53,15 @@ void main(void)		{
 	mat4 view = cameraData.viewMatrix;
 	mat4 model = transformData.objects[draw.transformIndex].modelMatrix;
 	mat4 transformMatrix = (proj * view * model);	
-	gl_Position = transformMatrix * vec4(vPosition, 1.0f);
+
 	outColor = vColor;
 	outTexCoords = vTexCoord;
 	outDrawDataIndex = pushConstants.drawDataIndex;
+	outNormal = mat3(transpose(inverse(model))) * vNormal;  
+
+
+	outWorldPos = vec3(model * vec4(vPosition, 1.0f));
+	gl_Position = transformMatrix * vec4(vPosition, 1.0f);
+
+
 }

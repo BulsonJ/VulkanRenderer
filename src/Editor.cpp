@@ -13,6 +13,10 @@ namespace Editor
 {
 	ImTextureID Editor::ViewportTexture;
 	ImTextureID Editor::ViewportDepthTexture;
+
+	glm::vec4* lightDirection;
+	glm::vec4* lightColor;
+	glm::vec4* lightAmbientColor;
 }
 
 void Editor::DrawEditor()
@@ -47,9 +51,9 @@ void Editor::DrawEditor()
 			// split the dockspace into 2 nodes -- DockBuilderSplitNode takes in the following args in the following order
 			//   window ID to split, direction, fraction (between 0 and 1), the final two setting let's us choose which id we want (which ever one we DON'T set as NULL, will be returned by the function)
 			//                                                              out_id_at_dir is the id of the node in the direction we specified earlier, out_id_at_opposite_dir is in the opposite direction
-			auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.2f, nullptr, &dockspace_id);
-			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.8f, nullptr, &dockspace_id);
-			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dock_id_right);
+			auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.3f, nullptr, &dockspace_id);
+			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.7f, nullptr, &dockspace_id);
+			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.3f, nullptr, &dock_id_right);
 
 			// we now dock our windows into the docking node we made above
 			ImGui::DockBuilderDockWindow("Log", dock_id_down);
@@ -94,6 +98,9 @@ void Editor::DrawViewportDepth() {
 void Editor::DrawSceneGraph()
 {
 	ImGui::Begin("SceneGraph");
+	ImGui::DragFloat3("Light Direction", (float*)lightDirection, 0.05f, -1.0f, 1.0f);
+	ImGui::ColorEdit4("Light Color", (float*)lightColor, ImGuiColorEditFlags_DisplayRGB);
+	ImGui::ColorEdit4("Light Ambient Color", (float*)lightAmbientColor, ImGuiColorEditFlags_DisplayRGB);
 	ImGui::End();
 }
 

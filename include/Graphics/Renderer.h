@@ -42,22 +42,29 @@ struct GPUDrawData
 struct GPUMaterialData
 {
 	// TODO: Figure out padding/alignment
-	//glm::vec4 ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	//glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
-	//float shininess = { 32.0f };
+	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
+	float shininess = { 32.0f };
 	glm::ivec4 diffuseIndex;
 };
 
 struct GPUTransform
 {
-	glm::mat4 modelMatrix{1.0f};
+	glm::mat4 modelMatrix{};
+};
+
+struct GPUDirectionalLightData
+{
+	glm::vec4 direction = { -0.2f, -1.0f, -0.3f, 1.0f };
+	glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+	glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
 };
 
 struct GPUCameraData
 {
 	glm::mat4 view{};
 	glm::mat4 proj{};
+	glm::vec4 pos{};
 };
 
 struct VertexInputDescription
@@ -107,6 +114,7 @@ struct RenderFrame
 
 	VkDescriptorSet sceneSet;
 	Handle<Buffer> cameraBuffer;
+	Handle<Buffer> dirLightBuffer;
 };
 
 class Renderer 
@@ -179,6 +187,7 @@ private:
 	VkDescriptorPool scenePool;
 
 	GPUCameraData camera;
+	GPUDirectionalLightData sunlight;
 
 	Slotmap<RenderMesh> meshes;
 	//std::unordered_map<std::string, Handle<Image>> images;

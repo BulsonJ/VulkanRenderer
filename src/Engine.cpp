@@ -15,12 +15,12 @@ void Engine::init() {
 }
 
 void Engine::setupScene() {
-	//EngineTypes::MeshDesc fileMesh;
-	//Handle<RenderMesh> fileMeshHandle {};
-	//if (fileMesh.loadFromObj("../../assets/meshes/monkey_smooth.obj"))
-	//{
-	//	fileMeshHandle = rend.uploadMesh(fileMesh);
-	//}
+	EngineTypes::MeshDesc fileMesh;
+	Handle<RenderMesh> fileMeshHandle {};
+	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
+	{
+		fileMeshHandle = rend.uploadMesh(fileMesh);
+	}
 
 	EngineTypes::MeshDesc cubeMeshDesc = EngineTypes::MeshDesc::GenerateCube();
 	Handle<RenderMesh> cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
@@ -28,8 +28,8 @@ void Engine::setupScene() {
 	static const std::string texturePaths[] = {
 		"../../assets/textures/default.png",
 		"../../assets/textures/texture.jpg",
-		"../../assets/textures/beehive/beehive_albedo.png",
-		"../../assets/textures/beehive/beehive_normal.png"
+		"../../assets/textures/metal/metal_albedo.png",
+		"../../assets/textures/metal/metal_normal.png"
 	};
 
 	std::vector<Handle<Handle<Image>>> textures;
@@ -41,13 +41,19 @@ void Engine::setupScene() {
 		textures.push_back(texHandle);
 	}
 
-	const EngineTypes::RenderObject materialTestObject{
-		.meshHandle = cubeMeshHandle,
-		.textureHandle = textures[2],
-		.normalHandle = textures[3],
-		.translation = { 0.0f,-0.5f,0.0f},
-	};
-	renderObjects.push_back(materialTestObject);
+	for (int i = 0; i < 5; ++i)
+	{
+		for (int j = 0; j < 5; ++j)
+		{
+			const EngineTypes::RenderObject materialTestObject{
+				.meshHandle = fileMeshHandle,
+				.textureHandle = textures[2],
+				.normalHandle = textures[3],
+				.translation = { 1.0f * j,-0.5f,1.0f * i},
+			};
+			renderObjects.push_back(materialTestObject);
+		}
+	}
 
 
 	LOG_CORE_INFO("Scene setup.");
