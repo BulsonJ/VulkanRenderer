@@ -29,7 +29,9 @@ void Engine::setupScene() {
 		"../../assets/textures/default.png",
 		"../../assets/textures/texture.jpg",
 		"../../assets/textures/metal/metal_albedo.png",
-		"../../assets/textures/metal/metal_normal.png"
+		"../../assets/textures/metal/metal_normal.png",
+		"../../assets/textures/bricks/bricks_albedo.png",
+		"../../assets/textures/bricks/bricks_normal.png",
 	};
 
 	std::vector<RenderableTypes::TextureHandle> textures;
@@ -41,14 +43,14 @@ void Engine::setupScene() {
 		textures.push_back(texHandle);
 	}
 
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 6; ++i)
 	{
-		for (int j = 0; j < 5; ++j)
+		for (int j = 0; j < 6; ++j)
 		{
 			const RenderableTypes::RenderObject materialTestObject{
-				.meshHandle = fileMeshHandle,
-				.textureHandle = textures[2],
-				.normalHandle = textures[3],
+				.meshHandle = cubeMeshHandle,
+				.textureHandle = i > 3 ? textures[2] : textures[4],
+				.normalHandle = i > 3 ? textures[3] : textures[5],
 				.translation = { 1.0f * j,-0.5f,1.0f * i},
 			};
 			renderObjects.push_back(materialTestObject);

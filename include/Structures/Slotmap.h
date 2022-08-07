@@ -24,7 +24,6 @@ public:
 	// TODO: make private
 	std::array<T, 1024> array;
 private:
-	bool first{ true };
 	uint32_t lastHandle{ 0U };
 	[[nodiscard]] uint32_t getNewHandle()
 	{
