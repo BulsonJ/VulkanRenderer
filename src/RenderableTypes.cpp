@@ -11,7 +11,7 @@ RenderableTypes::Texture::~Texture()
 	stbi_image_free(this->ptr);
 }
 
-void RenderableTypes::TextureUtil::LoadTextureFromFile(const char* file, RenderableTypes::Texture& outImage)
+void RenderableTypes::TextureUtil::LoadTextureFromFile(const char* file, RenderableTypes::TextureDesc textureDesc, RenderableTypes::Texture& outImage)
 {
 	ZoneScoped;
 
@@ -23,6 +23,7 @@ void RenderableTypes::TextureUtil::LoadTextureFromFile(const char* file, Rendera
 		return;
 	}
 
+	outImage.desc = textureDesc;
 	outImage.ptr = pixels;
 
 	return;

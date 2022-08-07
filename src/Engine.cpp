@@ -25,20 +25,21 @@ void Engine::setupScene() {
 	RenderableTypes::MeshDesc cubeMeshDesc = RenderableTypes::MeshDesc::GenerateCube();
 	RenderableTypes::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
 
-	static const std::string texturePaths[] = {
-		"../../assets/textures/default.png",
-		"../../assets/textures/texture.jpg",
-		"../../assets/textures/metal/metal_albedo.png",
-		"../../assets/textures/metal/metal_normal.png",
-		"../../assets/textures/bricks/bricks_albedo.png",
-		"../../assets/textures/bricks/bricks_normal.png",
+	static const std::pair<std::string, RenderableTypes::TextureDesc::Format> texturePaths[] = {
+		{"../../assets/textures/default.png", RenderableTypes::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/texture.jpg", RenderableTypes::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_albedo.png", RenderableTypes::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_normal.png", RenderableTypes::TextureDesc::Format::NORMAL},
+		{"../../assets/textures/bricks/bricks_albedo.png", RenderableTypes::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/bricks/bricks_normal.png", RenderableTypes::TextureDesc::Format::NORMAL},
 	};
 
 	std::vector<RenderableTypes::TextureHandle> textures;
 	for (int i = 0; i < std::size(texturePaths); ++i)
 	{
 		RenderableTypes::Texture img;
-		RenderableTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].c_str(), img);
+		const RenderableTypes::TextureDesc textureDesc{ .format = texturePaths[i].second };
+		RenderableTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
 		RenderableTypes::TextureHandle texHandle = rend.uploadTexture(img);
 		textures.push_back(texHandle);
 	}

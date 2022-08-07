@@ -26,6 +26,7 @@
 #include "Graphics/VulkanInit.h"
 #include "Editor.h"
 #include "Log.h"
+#include "RenderableTypes.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -112,12 +113,15 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 			* glm::toMat4(glm::quat(object.rotation))
 			* glm::scale(glm::mat4{ 1.0 }, object.scale);
 		objectSSBO[i].modelMatrix = modelMatrix;
+		objectSSBO[i].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 
-		materialSSBO[i] = GPUMaterialData{ 
+		materialSSBO[i] = GPUMaterialData{
+			.specular = {0.4f,0.4,0.4f},
+			.shininess = 64.0f,
 			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
 							object.normalHandle.has_value() ? object.normalHandle.value() : -1,
 							0,
-							0} 
+							0},
 		};
 
 	}
@@ -1207,7 +1211,7 @@ RenderableTypes::TextureHandle Renderer::uploadTexture(const RenderableTypes::Te
 ImageHandle Renderer::uploadTextureInternal(const RenderableTypes::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
-	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
+	const VkFormat image_format = {image.desc.format == RenderableTypes::TextureDesc::Format::DEFAULT ? VK_FORMAT_R8G8B8A8_SRGB: VK_FORMAT_R8G8B8A8_UNORM };
 
 	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
@@ -1322,7 +1326,7 @@ VertexInputDescription RenderMesh::getVertexDescription()
 	const VkVertexInputAttributeDescription normalAttribute = {
 		.location = 1,
 		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.format = VK_FORMAT_R8G8B8A8_UNORM,
 		.offset = offsetof(RenderableTypes::Vertex, normal),
 	};
 

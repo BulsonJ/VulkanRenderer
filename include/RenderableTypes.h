@@ -19,9 +19,20 @@ namespace RenderableTypes
 		glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
 	};
 
+	struct TextureDesc
+	{
+		enum class Format
+		{
+			DEFAULT,
+			NORMAL,
+		} format;
+	};
+
 	struct Texture
 	{
 		~Texture();
+
+		TextureDesc desc;
 
 		void* ptr = nullptr;
 		int texWidth;
@@ -31,7 +42,7 @@ namespace RenderableTypes
 
 	namespace TextureUtil
 	{
-		void LoadTextureFromFile(const char* file, Texture& outImage);
+		void LoadTextureFromFile(const char* file, RenderableTypes::TextureDesc textureDesc, Texture& outImage);
 	}
 }
 

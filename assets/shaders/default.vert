@@ -23,6 +23,7 @@ struct DrawData{
 
 struct ObjectData{
 	mat4 modelMatrix;
+	mat4 normalMatrix;
 };
 
 struct MaterialData{
@@ -57,10 +58,9 @@ void main(void)		{
 	outColor = vColor;
 	outTexCoords = vTexCoord;
 	outDrawDataIndex = pushConstants.drawDataIndex;
-	outNormal = mat3(transpose(inverse(model))) * vNormal;  
-
-
+	outNormal = mat3(transformData.objects[draw.transformIndex].normalMatrix) * vNormal;
 	outWorldPos = vec3(model * vec4(vPosition, 1.0f));
+
 	gl_Position = transformMatrix * vec4(vPosition, 1.0f);
 
 

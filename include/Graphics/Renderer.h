@@ -19,15 +19,6 @@ constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
 
-namespace RenderableTypes
-{
-	struct MeshDesc;
-	struct RenderObject;
-	struct Texture;
-}
-
-struct CPUImage;
-
 struct GPUPushConstants
 {
 	int drawDataIndex;
@@ -42,7 +33,6 @@ struct GPUDrawData
 
 struct GPUMaterialData
 {
-	// TODO: Figure out padding/alignment
 	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
 	float shininess = { 32.0f };
@@ -52,6 +42,7 @@ struct GPUMaterialData
 struct GPUTransform
 {
 	glm::mat4 modelMatrix{};
+	glm::mat4 normalMatrix{};
 };
 
 struct GPUDirectionalLightData
