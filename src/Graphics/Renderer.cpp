@@ -24,10 +24,8 @@
 #include <memory>
 
 #include "Graphics/VulkanInit.h"
-#include "Image.h"
 #include "Editor.h"
 #include "Log.h"
-#include "EngineTypes.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -90,11 +88,11 @@ void Renderer::initShaderData()
 	Editor::lightAmbientColor = &sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::RenderObject>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableTypes::RenderObject>& renderObjects)
 {	
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const EngineTypes::RenderObject* FIRST = renderObjects.data();
+	const RenderableTypes::RenderObject* FIRST = renderObjects.data();
 
 	// fill buffers
 	// binding 0
@@ -105,7 +103,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const EngineTypes::RenderObject& object = FIRST[i];
+		const RenderableTypes::RenderObject& object = FIRST[i];
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -116,8 +114,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 		objectSSBO[i].modelMatrix = modelMatrix;
 
 		materialSSBO[i] = GPUMaterialData{ 
-			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value().slot : -1,
-							object.normalHandle.has_value() ? object.normalHandle.value().slot : -1,
+			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
+							object.normalHandle.has_value() ? object.normalHandle.value() : -1,
 							0,
 							0} 
 		};
@@ -141,7 +139,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const EngineTypes::RenderObject& object = FIRST[i];
+		const RenderableTypes::RenderObject& object = FIRST[i];
 
 		// TODO : RenderObjects hold material handle for different materials
 		const MaterialType* currentMaterialType{ &materials["defaultMaterial"] };
@@ -163,7 +161,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 		// TODO : Find better way of handling mesh handle
 		// Currently having to recreate handle which is not good.
 		const RenderMesh* currentMesh { &meshes.get(object.meshHandle)};
-		const EngineTypes::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
+		const RenderableTypes::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
@@ -188,7 +186,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::R
 	}
 }
 
-void Renderer::draw(const std::vector<EngineTypes::RenderObject>& renderObjects)
+void Renderer::draw(const std::vector<RenderableTypes::RenderObject>& renderObjects)
 {
 	ZoneScoped;
 
@@ -1101,14 +1099,14 @@ void Renderer::deinit()
 	SDL_DestroyWindow(window.window);
 }
 
-Handle<RenderMesh> Renderer::uploadMesh(const EngineTypes::MeshDesc& mesh)
+RenderableTypes::MeshHandle Renderer::uploadMesh(const RenderableTypes::MeshDesc& mesh)
 {
 	ZoneScoped;
 	RenderMesh renderMesh {.meshDesc = mesh};
 	{
-		const size_t bufferSize = mesh.vertices.size() * sizeof(EngineTypes::Vertex);
+		const size_t bufferSize = mesh.vertices.size() * sizeof(RenderableTypes::Vertex);
 
-		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -1138,9 +1136,9 @@ Handle<RenderMesh> Renderer::uploadMesh(const EngineTypes::MeshDesc& mesh)
 
 	if (mesh.hasIndices())
 	{
-		const size_t bufferSize = mesh.indices.size() * sizeof(EngineTypes::MeshDesc::Index);
+		const size_t bufferSize = mesh.indices.size() * sizeof(RenderableTypes::MeshDesc::Index);
 
-		Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -1172,14 +1170,14 @@ Handle<RenderMesh> Renderer::uploadMesh(const EngineTypes::MeshDesc& mesh)
 	return meshes.add(renderMesh);
 }
 
-Handle<Handle<Image>> Renderer::uploadTexture(const EngineTypes::Texture& texture)
+RenderableTypes::TextureHandle Renderer::uploadTexture(const RenderableTypes::Texture& texture)
 {
 	if (texture.ptr == nullptr)
 	{
-		return Handle<Handle<Image>>(0);
+		return RenderableTypes::TextureHandle(0);
 	}
-	Handle<Image> newTextureHandle = uploadTextureInternal(texture);
-	Handle<Handle<Image>> bindlessHandle = bindlessImages.add(newTextureHandle);
+	ImageHandle newTextureHandle = uploadTextureInternal(texture);
+	RenderableTypes::TextureHandle bindlessHandle = bindlessImages.add(newTextureHandle);
 
 	VkDescriptorImageInfo bindlessImageInfo = {
 		.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(bindlessHandle)).imageView,
@@ -1192,7 +1190,7 @@ Handle<Handle<Image>> Renderer::uploadTexture(const EngineTypes::Texture& textur
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = frame[i].globalSet,
 			.dstBinding = 4,
-			.dstArrayElement = bindlessHandle.slot,
+			.dstArrayElement = bindlessHandle,
 			.descriptorCount = static_cast<uint32_t>(1),
 			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
 			.pImageInfo = &bindlessImageInfo,
@@ -1206,12 +1204,12 @@ Handle<Handle<Image>> Renderer::uploadTexture(const EngineTypes::Texture& textur
 	return bindlessHandle;
 }
 
-Handle<Image> Renderer::uploadTextureInternal(const EngineTypes::Texture& image)
+ImageHandle Renderer::uploadTextureInternal(const RenderableTypes::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
 	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
 
-	Handle<Buffer> stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -1229,7 +1227,7 @@ Handle<Image> Renderer::uploadTextureInternal(const EngineTypes::Texture& image)
 
 	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
 
-	Handle<Image> newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
+	ImageHandle newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
 
 	immediateSubmit([&](VkCommandBuffer cmd) {
 		const VkImageSubresourceRange range{
@@ -1308,7 +1306,7 @@ VertexInputDescription RenderMesh::getVertexDescription()
 
 	const VkVertexInputBindingDescription mainBinding = {
 		.binding = 0,
-		.stride = sizeof(EngineTypes::Vertex),
+		.stride = sizeof(RenderableTypes::Vertex),
 		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 	};
 
@@ -1318,28 +1316,28 @@ VertexInputDescription RenderMesh::getVertexDescription()
 		.location = 0,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(EngineTypes::Vertex, position),
+		.offset = offsetof(RenderableTypes::Vertex, position),
 	};
 
 	const VkVertexInputAttributeDescription normalAttribute = {
 		.location = 1,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(EngineTypes::Vertex, normal),
+		.offset = offsetof(RenderableTypes::Vertex, normal),
 	};
 
 	const VkVertexInputAttributeDescription colorAttribute = {
 		.location = 2,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(EngineTypes::Vertex, color),
+		.offset = offsetof(RenderableTypes::Vertex, color),
 	};
 
 	const VkVertexInputAttributeDescription uvAttribute = {
 		.location = 3,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32_SFLOAT,
-		.offset = offsetof(EngineTypes::Vertex, uv),
+		.offset = offsetof(RenderableTypes::Vertex, uv),
 	};
 
 	description.attributes.push_back(positionAttribute);

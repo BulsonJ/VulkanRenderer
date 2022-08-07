@@ -51,6 +51,9 @@ struct Image
 	VkImageView imageView;
 };
 
+typedef uint32_t BufferHandle;
+typedef uint32_t ImageHandle;
+
 class ResourceManager
 {
 public:
@@ -58,13 +61,13 @@ public:
 	ResourceManager(const VkDevice device, const VmaAllocator allocator) : device(device), allocator(allocator) {}
 	~ResourceManager();
 
-	Handle<Buffer> CreateBuffer(const BufferCreateInfo& createInfo);
-	Buffer GetBuffer(const Handle<Buffer>& buffer);
-	void DestroyBuffer(const Handle<Buffer>& buffer);
+	BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
+	Buffer GetBuffer(const BufferHandle& buffer);
+	void DestroyBuffer(const BufferHandle& buffer);
 
-	Handle<Image> CreateImage(const ImageCreateInfo& createInfo);
-	Image GetImage(const Handle<Image>& image);
-	void DestroyImage(const Handle<Image>& image);
+	ImageHandle CreateImage(const ImageCreateInfo& createInfo);
+	Image GetImage(const ImageHandle& image);
+	void DestroyImage(const ImageHandle& image);
 protected:
 	const VkDevice device;
 	const VmaAllocator allocator;

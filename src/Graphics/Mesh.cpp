@@ -6,8 +6,8 @@
 
 #include "Log.h"
 
-EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateTriangle() {
-	EngineTypes::MeshDesc triangleMesh;
+RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateTriangle() {
+	RenderableTypes::MeshDesc triangleMesh;
 
 	triangleMesh.vertices.resize(3);
 
@@ -30,8 +30,8 @@ EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateTriangle() {
 	return triangleMesh;
 }
 
-EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateQuad() {
-	EngineTypes::MeshDesc mesh;
+RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateQuad() {
+	RenderableTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4);
 
@@ -66,8 +66,8 @@ EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateQuad() {
 	return mesh;
 }
 
-EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateCube() {
-	EngineTypes::MeshDesc mesh;
+RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateCube() {
+	RenderableTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4*6);
 
@@ -165,8 +165,8 @@ EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateCube() {
 	return mesh;
 }
 
-EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateSkyboxCube() {
-	EngineTypes::MeshDesc mesh;
+RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateSkyboxCube() {
+	RenderableTypes::MeshDesc mesh;
 
 	mesh.vertices.resize(4 * 6);
 
@@ -264,8 +264,8 @@ EngineTypes::MeshDesc EngineTypes::MeshDesc::GenerateSkyboxCube() {
 	return mesh;
 }
 
-EngineTypes::MeshDesc EngineTypes::MeshDesc::GeneratePlane(int size) {
-	EngineTypes::MeshDesc mesh;
+RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GeneratePlane(int size) {
+	RenderableTypes::MeshDesc mesh;
 
 	const int meshSize = size + 1;
 	mesh.vertices.resize(meshSize * meshSize);
@@ -306,14 +306,14 @@ EngineTypes::MeshDesc EngineTypes::MeshDesc::GeneratePlane(int size) {
 	return mesh;
 }
 
-bool EngineTypes::MeshDesc::hasIndices() const {
+bool RenderableTypes::MeshDesc::hasIndices() const {
 	if (this->indices.size() > 0) {
 		return true;
 	}
 	return false;
 }
 
-bool EngineTypes::MeshDesc::loadFromObj(const char* filename)
+bool RenderableTypes::MeshDesc::loadFromObj(const char* filename)
 {
 	//attrib will contain the vertex arrays of the file
 	tinyobj::attrib_t attrib;

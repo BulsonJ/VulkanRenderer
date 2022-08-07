@@ -24,12 +24,12 @@ ResourceManager::~ResourceManager()
 	}
 }
 
-Buffer ResourceManager::GetBuffer(const Handle<Buffer>& buffer)
+Buffer ResourceManager::GetBuffer(const BufferHandle& buffer)
 {
 	return buffers.get(buffer);
 }
 
-Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
+BufferHandle ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 {
 	VkBufferCreateInfo bufferInfo = {
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -69,12 +69,12 @@ Handle<Buffer> ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	newBuffer.ptr = allocInfo.pMappedData;
 	newBuffer.size = createInfo.size;
 
-	Handle<Buffer> newHandle = buffers.add(newBuffer);
+	BufferHandle newHandle = buffers.add(newBuffer);
 
 	return newHandle;
 }
 
-void ResourceManager::DestroyBuffer(const Handle<Buffer>& buffer)
+void ResourceManager::DestroyBuffer(const BufferHandle& buffer)
 {
 	Buffer& deleteBuffer = buffers.get(buffer);
 	if (deleteBuffer.buffer != VK_NULL_HANDLE)
@@ -84,7 +84,7 @@ void ResourceManager::DestroyBuffer(const Handle<Buffer>& buffer)
 	deleteBuffer.buffer = VK_NULL_HANDLE;
 }
 
-Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
+ImageHandle ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 {
 	Image newImage;
 
@@ -119,17 +119,17 @@ Handle<Image> ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 
 	vkCreateImageView(device, &imageinfo, nullptr, &newImage.imageView);
 
-	Handle<Image> newHandle = images.add(newImage);
+	ImageHandle newHandle = images.add(newImage);
 
 	return newHandle;
 }
 
-Image ResourceManager::GetImage(const Handle<Image>& image)
+Image ResourceManager::GetImage(const ImageHandle& image)
 {
 	return images.get(image);
 }
 
-void ResourceManager::DestroyImage(const Handle<Image>& image)
+void ResourceManager::DestroyImage(const ImageHandle& image)
 {
 	Image& deleteImage = images.get(image);
 	if (deleteImage.image != VK_NULL_HANDLE)

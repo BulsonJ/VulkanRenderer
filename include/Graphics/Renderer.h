@@ -13,12 +13,13 @@
 #include "ResourceManager.h"
 #include "Mesh.h"
 #include "DeletionQueue.h"
+#include "RenderableTypes.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
 
-namespace EngineTypes
+namespace RenderableTypes
 {
 	struct MeshDesc;
 	struct RenderObject;
@@ -55,7 +56,7 @@ struct GPUTransform
 
 struct GPUDirectionalLightData
 {
-	glm::vec4 direction = { -0.2f, -1.0f, -0.3f, 1.0f };
+	glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
 	glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
 	glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
 };
@@ -77,9 +78,9 @@ struct VertexInputDescription
 
 struct RenderMesh
 {
-	EngineTypes::MeshDesc meshDesc;
-	Handle<Buffer> vertexBuffer;
-	Handle<Buffer> indexBuffer;
+	RenderableTypes::MeshDesc meshDesc;
+	BufferHandle vertexBuffer;
+	BufferHandle indexBuffer;
 
 	static VertexInputDescription getVertexDescription();
 };
@@ -99,7 +100,7 @@ struct MaterialInstance
 
 struct RenderFrame
 {
-	Handle<Image> renderImage;
+	ImageHandle renderImage;
 
 	VkSemaphore presentSem;
 	VkSemaphore	renderSem;
@@ -108,13 +109,13 @@ struct RenderFrame
 	DeletionQueue frameDeletionQueue;
 
 	VkDescriptorSet globalSet;
-	Handle<Buffer> transformBuffer;
-	Handle<Buffer> materialBuffer;
-	Handle<Buffer> drawDataBuffer;
+	BufferHandle transformBuffer;
+	BufferHandle materialBuffer;
+	BufferHandle drawDataBuffer;
 
 	VkDescriptorSet sceneSet;
-	Handle<Buffer> cameraBuffer;
-	Handle<Buffer> dirLightBuffer;
+	BufferHandle cameraBuffer;
+	BufferHandle dirLightBuffer;
 };
 
 class Renderer 
@@ -123,9 +124,10 @@ public:
 	void init();
 	void deinit();
 
-	void draw(const std::vector<EngineTypes::RenderObject>& renderObjects);
-	Handle<RenderMesh> uploadMesh(const EngineTypes::MeshDesc& mesh);
-	Handle<Handle<Image>> uploadTexture(const EngineTypes::Texture& texture);
+	// Public rendering API
+	void draw(const std::vector<RenderableTypes::RenderObject>& renderObjects);
+	RenderableTypes::MeshHandle uploadMesh(const RenderableTypes::MeshDesc& mesh);
+	RenderableTypes::TextureHandle uploadTexture(const RenderableTypes::Texture& texture);
 
 	RenderTypes::WindowContext window;
 private:
@@ -139,16 +141,15 @@ private:
 	void initComputeCommands();
 	void initSyncStructures();
 
-
 	void initImgui();
 	void initImguiRenderImages();
 	void initShaders();
 
 	void initShaderData();
 
-	void drawObjects(VkCommandBuffer cmd, const std::vector<EngineTypes::RenderObject>& renderObjects);
+	void drawObjects(VkCommandBuffer cmd, const std::vector<RenderableTypes::RenderObject>& renderObjects);
 
-	Handle<Image> uploadTextureInternal(const EngineTypes::Texture& image);
+	ImageHandle uploadTextureInternal(const RenderableTypes::Texture& image);
 
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
@@ -177,7 +178,7 @@ private:
 	ImTextureID imguiDepthTexture;
 
 	RenderFrame frame[FRAME_OVERLAP];
-	Handle<Image> depthImage;
+	ImageHandle depthImage;
 	int frameNumber{};
 
 	VkDescriptorSetLayout globalSetLayout;
@@ -190,8 +191,7 @@ private:
 	GPUDirectionalLightData sunlight;
 
 	Slotmap<RenderMesh> meshes;
-	//std::unordered_map<std::string, Handle<Image>> images;
 	std::unordered_map<std::string, MaterialType> materials;
 
-	Slotmap<Handle<Image>> bindlessImages;
+	Slotmap<ImageHandle> bindlessImages;
 };

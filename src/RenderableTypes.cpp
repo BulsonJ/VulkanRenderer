@@ -1,19 +1,17 @@
-#include "Image.h"
-
-#include <iostream>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "RenderableTypes.h"
 
 #include <public/tracy/Tracy.hpp>
 #include "Log.h"
 
-EngineTypes::Texture::~Texture()
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+RenderableTypes::Texture::~Texture()
 {
 	stbi_image_free(this->ptr);
 }
 
-void EngineTypes::TextureUtil::LoadTextureFromFile(const char* file, EngineTypes::Texture& outImage)
+void RenderableTypes::TextureUtil::LoadTextureFromFile(const char* file, RenderableTypes::Texture& outImage)
 {
 	ZoneScoped;
 

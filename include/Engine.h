@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Graphics/Renderer.h"
-#include "EngineTypes.h"
+#include "RenderableTypes.h"
 
 class Engine
 {
@@ -14,6 +14,6 @@ private:
 	void setupScene();
 
 	Renderer rend;
-	std::vector<EngineTypes::RenderObject> renderObjects;
+	std::vector<RenderableTypes::RenderObject> renderObjects;
 };
 

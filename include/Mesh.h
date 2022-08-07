@@ -5,12 +5,10 @@
 #include <vector>
 #include <optional>
 
-
-namespace EngineTypes
+namespace RenderableTypes
 {
 	struct Vertex
 	{
-
 		glm::vec3 position;
 		glm::vec3 normal;
 		glm::vec3 color;
@@ -35,10 +33,10 @@ namespace EngineTypes
 			return glm::cross(sideAB, sideAC);
 		}
 
-		static EngineTypes::MeshDesc GenerateTriangle();
-		static EngineTypes::MeshDesc GenerateQuad();
-		static EngineTypes::MeshDesc GenerateCube();
-		static EngineTypes::MeshDesc GenerateSkyboxCube();
-		static EngineTypes::MeshDesc GeneratePlane(int size);
+		static RenderableTypes::MeshDesc GenerateTriangle();
+		static RenderableTypes::MeshDesc GenerateQuad();
+		static RenderableTypes::MeshDesc GenerateCube();
+		static RenderableTypes::MeshDesc GenerateSkyboxCube();
+		static RenderableTypes::MeshDesc GeneratePlane(int size);
 	};
 }

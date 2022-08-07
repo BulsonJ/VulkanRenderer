@@ -15,15 +15,15 @@ void Engine::init() {
 }
 
 void Engine::setupScene() {
-	EngineTypes::MeshDesc fileMesh;
-	Handle<RenderMesh> fileMeshHandle {};
+	RenderableTypes::MeshDesc fileMesh;
+	RenderableTypes::MeshHandle fileMeshHandle {};
 	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
 	{
 		fileMeshHandle = rend.uploadMesh(fileMesh);
 	}
 
-	EngineTypes::MeshDesc cubeMeshDesc = EngineTypes::MeshDesc::GenerateCube();
-	Handle<RenderMesh> cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
+	RenderableTypes::MeshDesc cubeMeshDesc = RenderableTypes::MeshDesc::GenerateCube();
+	RenderableTypes::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
 
 	static const std::string texturePaths[] = {
 		"../../assets/textures/default.png",
@@ -32,12 +32,12 @@ void Engine::setupScene() {
 		"../../assets/textures/metal/metal_normal.png"
 	};
 
-	std::vector<Handle<Handle<Image>>> textures;
+	std::vector<RenderableTypes::TextureHandle> textures;
 	for (int i = 0; i < std::size(texturePaths); ++i)
 	{
-		EngineTypes::Texture img;
-		EngineTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].c_str(), img);
-		Handle<Handle<Image>> texHandle = rend.uploadTexture(img);
+		RenderableTypes::Texture img;
+		RenderableTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].c_str(), img);
+		RenderableTypes::TextureHandle texHandle = rend.uploadTexture(img);
 		textures.push_back(texHandle);
 	}
 
@@ -45,7 +45,7 @@ void Engine::setupScene() {
 	{
 		for (int j = 0; j < 5; ++j)
 		{
-			const EngineTypes::RenderObject materialTestObject{
+			const RenderableTypes::RenderObject materialTestObject{
 				.meshHandle = fileMeshHandle,
 				.textureHandle = textures[2],
 				.normalHandle = textures[3],
