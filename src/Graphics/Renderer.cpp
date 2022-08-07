@@ -98,9 +98,9 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUDrawData* drawDataSSBO = (GPUDrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
-	GPUTransform* objectSSBO = (GPUTransform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
-	GPUMaterialData* materialSSBO = (GPUMaterialData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
+	GPUShaderData::DrawData* drawDataSSBO = (GPUShaderData::DrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
+	GPUShaderData::Transform* objectSSBO = (GPUShaderData::Transform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
+	GPUShaderData::Material* materialSSBO = (GPUShaderData::Material*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
 
 	for (int i = 0; i < COUNT; ++i)
 	{
@@ -115,7 +115,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 		objectSSBO[i].modelMatrix = modelMatrix;
 		objectSSBO[i].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 
-		materialSSBO[i] = GPUMaterialData{
+		materialSSBO[i] = GPUShaderData::Material{
 			.specular = {0.4f,0.4,0.4f},
 			.shininess = 64.0f,
 			.textureIndices = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
@@ -133,10 +133,10 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 			UP_DIR);
 	//const float rotationSpeed = 0.5f;
 	//camera.view = glm::rotate(camera.view, (frameNumber / 120.0f) * rotationSpeed, UP_DIR);
-	GPUCameraData* cameraSSBO = (GPUCameraData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
+	GPUShaderData::Camera* cameraSSBO = (GPUShaderData::Camera*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
 	*cameraSSBO = camera;
 		//slot 1 - directionalLight
-	GPUDirectionalLightData* dirLightSSBO = (GPUDirectionalLightData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
+	GPUShaderData::DirectionalLight* dirLightSSBO = (GPUShaderData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
 	*dirLightSSBO = sunlight;
 
 	const MaterialType* lastMaterialType = nullptr;
@@ -157,10 +157,10 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 			lastMaterialType = currentMaterialType;
 		}
 
-		const GPUPushConstants constants = {
+		const GPUShaderData::PushConstants constants = {
 			.drawDataIndex = i,
 		};
-		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUPushConstants), &constants);
+		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUShaderData::PushConstants), &constants);
 
 		// TODO : Find better way of handling mesh handle
 		// Currently having to recreate handle which is not good.
@@ -880,12 +880,12 @@ void Renderer::initShaders()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUDrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUTransform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUMaterialData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::DrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Transform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Material) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 
-		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUCameraData), .usage = GFX::Buffer::Usage::UNIFORM });
-		frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUDirectionalLightData), .usage = GFX::Buffer::Usage::UNIFORM });
+		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
+		frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
 	}
 	// create descriptor layout
 
@@ -1003,7 +1003,7 @@ void Renderer::initShaders()
 	const VkPushConstantRange defaultPushConstants{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 		.offset = 0,
-		.size = sizeof(GPUPushConstants),
+		.size = sizeof(GPUShaderData::PushConstants),
 	};
 
 	VkDescriptorSetLayout setLayouts[] = { globalSetLayout, sceneSetLayout };
@@ -1211,7 +1211,7 @@ RenderableTypes::TextureHandle Renderer::uploadTexture(const RenderableTypes::Te
 ImageHandle Renderer::uploadTextureInternal(const RenderableTypes::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
-	const VkFormat image_format = {image.desc.format == RenderableTypes::TextureDesc::Format::DEFAULT ? VK_FORMAT_R8G8B8A8_SRGB: VK_FORMAT_R8G8B8A8_UNORM };
+	const VkFormat image_format = {image.desc.format == RenderableTypes::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
 	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
@@ -1326,7 +1326,7 @@ VertexInputDescription RenderMesh::getVertexDescription()
 	const VkVertexInputAttributeDescription normalAttribute = {
 		.location = 1,
 		.binding = 0,
-		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		.format = NORMAL_FORMAT,
 		.offset = offsetof(RenderableTypes::Vertex, normal),
 	};
 

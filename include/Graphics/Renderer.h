@@ -17,6 +17,8 @@
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
+constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
+constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
 
 struct SDL_Window;
 
@@ -60,51 +62,54 @@ namespace RenderTypes
 	};
 }
 
-struct GPUPushConstants
+namespace GPUShaderData
 {
-	int drawDataIndex;
-};
 
-struct GPUDrawData
-{
-	int transformIndex;
-	int materialIndex;
-	int padding[2];
-};
+	struct PushConstants
+	{
+		int drawDataIndex;
+	};
 
-struct GPUMaterialData
-{
-	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
-	float shininess = { 32.0f };
-	glm::ivec4 textureIndices;
-};
+	struct DrawData
+	{
+		int transformIndex;
+		int materialIndex;
+		int padding[2];
+	};
 
-struct GPUTransform
-{
-	glm::mat4 modelMatrix{};
-	glm::mat4 normalMatrix{};
-};
+	struct Material
+	{
+		glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
+		float shininess = { 32.0f };
+		glm::ivec4 textureIndices;
+	};
 
-struct GPUDirectionalLightData
-{
-	glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
-	glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
-	glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
-};
+	struct Transform
+	{
+		glm::mat4 modelMatrix{};
+		glm::mat4 normalMatrix{};
+	};
 
-struct GPUCameraData
-{
-	glm::mat4 view{};
-	glm::mat4 proj{};
-	glm::vec4 pos{};
-};
+	struct DirectionalLight
+	{
+		glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
+		glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+		glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+	};
+
+	struct Camera
+	{
+		glm::mat4 view{};
+		glm::mat4 proj{};
+		glm::vec4 pos{};
+	};
+}
 
 struct VertexInputDescription
 {
 	std::vector<VkVertexInputBindingDescription> bindings;
 	std::vector<VkVertexInputAttributeDescription> attributes;
-
 	VkPipelineVertexInputStateCreateFlags flags = 0;
 };
 
@@ -126,8 +131,7 @@ struct MaterialType
 struct MaterialInstance
 {
 	MaterialType* matType = nullptr;
-
-	GPUMaterialData materialData;
+	GPUShaderData::Material materialData;
 };
 
 struct RenderFrame
@@ -137,8 +141,6 @@ struct RenderFrame
 	VkSemaphore presentSem;
 	VkSemaphore	renderSem;
 	VkFence renderFen;
-
-	DeletionQueue frameDeletionQueue;
 
 	VkDescriptorSet globalSet;
 	BufferHandle transformBuffer;
@@ -219,8 +221,8 @@ private:
 	VkDescriptorSetLayout sceneSetLayout;
 	VkDescriptorPool scenePool;
 
-	GPUCameraData camera;
-	GPUDirectionalLightData sunlight;
+	GPUShaderData::Camera camera;
+	GPUShaderData::DirectionalLight sunlight;
 
 	Slotmap<RenderMesh> meshes;
 	std::unordered_map<std::string, MaterialType> materials;
