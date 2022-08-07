@@ -11,7 +11,10 @@ find_package(Vulkan REQUIRED)
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "include/*.h")
 
-add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES} )
+
+
+add_executable(VulkanRenderer ${SRC_FILES} ${HEADER_FILES})
+target_compile_options(VulkanRenderer PRIVATE -Wall)
 
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES})
 

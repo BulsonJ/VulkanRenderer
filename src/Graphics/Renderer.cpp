@@ -81,9 +81,6 @@ void Renderer::initShaderData()
 	camera.proj = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 	camera.proj[1][1] *= -1;
 	camera.pos = { 6.0f,3.0f,6.0f,0.0f };
-	camera.view = glm::lookAt(glm::vec3{ camera.pos.x, camera.pos.y,camera.pos.z },
-							  glm::vec3(0.0f, 0.0f, 0.0f),
-							  UP_DIR);
 	Editor::lightDirection = &sunlight.direction;
 	Editor::lightColor = &sunlight.color;
 	Editor::lightAmbientColor = &sunlight.ambientColor;

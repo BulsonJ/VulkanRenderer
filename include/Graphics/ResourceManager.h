@@ -39,16 +39,16 @@ struct ImageCreateInfo
 struct Buffer
 {
 	VkBuffer buffer{ VK_NULL_HANDLE };
-	VmaAllocation allocation;
-	void* ptr;
-	std::size_t size;
+	VmaAllocation allocation{};
+	void* ptr {nullptr};
+	std::size_t size{};
 };
 
 struct Image
 {
-	VkImage image {VK_NULL_HANDLE};
-	VmaAllocation allocation;
-	VkImageView imageView;
+	VkImage image { VK_NULL_HANDLE };
+	VmaAllocation allocation{};
+	VkImageView imageView{ VK_NULL_HANDLE };
 };
 
 typedef uint32_t BufferHandle;
