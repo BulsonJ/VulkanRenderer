@@ -4,7 +4,6 @@
 #include <backends/imgui_impl_sdl.h>
 
 #include "Log.h"
-#include "Image.h"
 
 void Engine::init() {
 	ZoneScoped;
