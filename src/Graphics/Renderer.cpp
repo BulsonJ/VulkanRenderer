@@ -118,7 +118,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 		materialSSBO[i] = GPUMaterialData{
 			.specular = {0.4f,0.4,0.4f},
 			.shininess = 64.0f,
-			.diffuseIndex = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
+			.textureIndices = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
 							object.normalHandle.has_value() ? object.normalHandle.value() : -1,
 							0,
 							0},

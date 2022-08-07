@@ -36,7 +36,7 @@ struct GPUMaterialData
 	glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
 	float shininess = { 32.0f };
-	glm::ivec4 diffuseIndex;
+	glm::ivec4 textureIndices;
 };
 
 struct GPUTransform
